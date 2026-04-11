@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Shop Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════ */
+/* CSS RESET & VARIABLES                 */
+/* ══════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0B1120;--card:#111827;--card-alt:#1a2236;
+  --gold:#D4A017;--gold-soft:rgba(212,160,23,.12);--gold-border:rgba(212,160,23,.3);
+  --text:#F1EDE3;--muted:#8B8979;--border:rgba(255,255,255,.06);
+  --input-bg:#0d1526;--green:#22c55e;--red:#ef4444;--blue:#3b82f6;--purple:#a855f7;
+  --font:'DM Sans',sans-serif;--mono:'Space Mono',monospace;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.5}
+input,select,textarea,button{font-family:var(--font);font-size:16px;color:var(--text);outline:none;border:none;background:none}
+input[type="number"],input[type="text"],input[type="date"],select,textarea{
+  width:100%;padding:14px 16px;background:var(--input-bg);border:1px solid var(--border);border-radius:12px;
+  font-size:16px;color:var(--text);-webkit-appearance:none;appearance:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--gold-border);box-shadow:0 0 0 3px var(--gold-soft)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238B8979' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:40px}
+::-webkit-calendar-picker-indicator{filter:invert(.7)}
+
+/* ══════════════════════════════════════ */
+/* LAYOUT                                */
+/* ══════════════════════════════════════ */
+#app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto;position:relative}
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--bg);z-index:100;min-height:56px;flex-shrink:0}
+.header-title{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px}
+.header-title .emoji{font-size:22px}
+.header-right{display:flex;gap:12px;align-items:center}
+.gear-btn{font-size:24px;cursor:pointer;padding:6px;border-radius:8px;transition:.2s}
+.gear-btn:active{background:var(--card)}
+.back-btn{font-size:22px;cursor:pointer;padding:6px 10px 6px 0;display:none}
+.content{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 16px 16px;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.bottom-tabs{display:flex;background:var(--card);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:var(--safe-bottom);z-index:100}
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0 8px;cursor:pointer;transition:.2s;border:none;background:none;font-size:12px;color:var(--muted)}
+.tab-btn.active{color:var(--gold)}
+.tab-btn .tab-icon{font-size:22px}
+.tab-btn .tab-label{font-weight:600}
+
+/* ══════════════════════════════════════ */
+/* SCREENS                               */
+/* ══════════════════════════════════════ */
+.screen{display:none}
+.screen.active{display:block}
+
+/* ══════════════════════════════════════ */
+/* PIN SCREEN                            */
+/* ══════════════════════════════════════ */
+#pin-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+#pin-screen.active{display:flex}
+.pin-title{font-size:22px;font-weight:700;margin-bottom:8px;text-align:center}
+.pin-icon{font-size:56px;width:80px;height:80px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#D4A017,#b8860b);border-radius:20px;margin-bottom:20px}
+.pin-subtitle{font-size:14px;color:var(--muted);margin-bottom:32px;text-align:center}
+.pin-dots{display:flex;gap:14px;margin-bottom:32px}
+.pin-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--gold-border);transition:.2s}
+.pin-dot.filled{background:var(--gold);border-color:var(--gold)}
+.pin-dot.error{border-color:var(--red);background:var(--red)}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:280px;width:100%}
+.pin-key{height:64px;border-radius:16px;background:var(--card);font-size:24px;font-family:var(--mono);font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;border:1px solid var(--border);user-select:none;-webkit-user-select:none}
+.pin-key:active{background:var(--gold-soft);border-color:var(--gold-border);transform:scale(.95)}
+.pin-key.backspace{font-size:20px}
+.pin-key.submit{font-size:22px;background:var(--gold-soft);border-color:var(--gold-border);color:var(--gold)}
+.pin-error{color:var(--red);font-size:14px;margin-top:16px;min-height:20px;text-align:center}
+.pin-name-input{margin-bottom:24px;text-align:center;font-size:20px;max-width:280px;padding:16px}
+.pin-name-btn{padding:14px 40px;background:var(--gold);color:#000;font-weight:700;border-radius:12px;font-size:16px;cursor:pointer;margin-top:8px}
+.pin-name-btn:disabled{background:var(--muted);cursor:not-allowed}
+
+/* ══════════════════════════════════════ */
+/* CARDS & COMPONENTS                    */
+/* ══════════════════════════════════════ */
+.card{background:var(--card);border-radius:16px;padding:18px;margin-bottom:14px;border:1px solid var(--border)}
+.card-alt{background:var(--card-alt)}
+.section-title{font-size:15px;font-weight:600;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.amount{font-family:var(--mono);font-weight:700;font-size:20px}
+.amount-sm{font-family:var(--mono);font-weight:700;font-size:16px}
+.rupee{font-family:var(--mono)}
+.green{color:var(--green)}.red{color:var(--red)}.gold{color:var(--gold)}.blue{color:var(--blue)}
+
+/* Toggle chips */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{padding:10px 18px;border-radius:10px;border:1px solid var(--border);cursor:pointer;font-weight:600;font-size:14px;transition:.2s;user-select:none;-webkit-user-select:none}
+.chip.active{background:var(--gold-soft);border-color:var(--gold);color:var(--gold)}
+.chip:active{transform:scale(.96)}
+
+/* Sale/Expense toggle */
+.type-toggle{display:flex;gap:0;margin-bottom:18px;border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+.type-toggle-btn{flex:1;padding:12px;text-align:center;font-weight:700;font-size:15px;cursor:pointer;transition:.2s;background:var(--card)}
+.type-toggle-btn.active-sale{background:rgba(34,197,94,.15);color:var(--green);border-bottom:3px solid var(--green)}
+.type-toggle-btn.active-expense{background:rgba(239,68,68,.15);color:var(--red);border-bottom:3px solid var(--red)}
+
+/* Form */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.form-row{display:flex;gap:10px}
+.form-row>*{flex:1}
+
+/* Buttons */
+.btn{padding:14px 24px;border-radius:12px;font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s;min-height:50px;border:none;width:100%;user-select:none;-webkit-user-select:none}
+.btn:active{transform:scale(.97)}
+.btn-gold{background:linear-gradient(135deg,#D4A017,#b8860b);color:#000}
+.btn-gold:disabled{background:#333;color:#666;cursor:not-allowed;transform:none}
+.btn-outline{border:1px solid var(--border);color:var(--text);background:var(--card)}
+.btn-green{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.btn-red{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.btn-sm{padding:8px 16px;font-size:13px;min-height:38px;border-radius:10px}
+.sync-status{font-size:13px;text-align:center;margin-top:8px;min-height:20px}
+
+/* Party list */
+.party-item{display:flex;justify-content:space-between;align-items:center;padding:16px;cursor:pointer;border-bottom:1px solid var(--border);transition:.15s}
+.party-item:active{background:var(--card-alt)}
+.party-name{font-weight:600;font-size:16px}
+.party-balance{font-family:var(--mono);font-weight:700;font-size:16px}
+.party-arrow{color:var(--muted);font-size:18px;margin-left:8px}
+
+/* Transaction items */
+.txn-item{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border)}
+.txn-icon{font-size:20px;flex-shrink:0;margin-top:2px}
+.txn-body{flex:1;min-width:0}
+.txn-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.txn-amount{font-family:var(--mono);font-weight:700;font-size:17px;white-space:nowrap}
+.txn-method{font-size:13px;color:var(--muted);font-weight:500}
+.txn-desc{font-size:13px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.txn-meta{font-size:11px;color:var(--muted);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap}
+.txn-tag{font-size:11px;padding:2px 8px;border-radius:6px;background:var(--gold-soft);color:var(--gold);font-weight:600}
+.txn-actions{display:flex;gap:6px;flex-shrink:0;align-items:flex-start;margin-top:2px}
+.txn-action-btn{padding:6px 10px;border-radius:8px;cursor:pointer;font-size:14px;background:var(--card-alt);border:1px solid var(--border);transition:.15s}
+.txn-action-btn:active{transform:scale(.9)}
+
+/* Date separator */
+.date-sep{text-align:center;padding:14px 0 8px;font-size:13px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:12px}
+.date-sep::before,.date-sep::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* Summary card */
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.summary-item{text-align:center;padding:12px;border-radius:12px;background:var(--card-alt)}
+.summary-label{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px}
+.summary-value{font-family:var(--mono);font-weight:700;font-size:18px}
+.summary-sub{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* PIN Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:5000;align-items:center;justify-content:center;padding:24px}
+.modal-overlay.active{display:flex}
+.modal-card{background:var(--card);border-radius:20px;padding:28px 24px;max-width:340px;width:100%;text-align:center;border:1px solid var(--border)}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:6px}
+.modal-detail{font-size:14px;color:var(--muted);margin-bottom:20px}
+.modal-pin-input{display:flex;gap:10px;justify-content:center;margin-bottom:16px}
+.modal-pin-box{width:48px;height:52px;border-radius:12px;background:var(--input-bg);border:1px solid var(--border);font-family:var(--mono);font-size:24px;font-weight:700;text-align:center}
+.modal-pin-box:focus{border-color:var(--gold)}
+.modal-btns{display:flex;gap:10px;margin-top:8px}
+.modal-btns .btn{flex:1}
+.modal-error{color:var(--red);font-size:13px;margin-top:8px;min-height:18px}
+
+/* Setup overlay */
+#setup-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:4000;flex-direction:column}
+#setup-screen.active{display:flex}
+.setup-header{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border)}
+.setup-close{font-size:24px;cursor:pointer;padding:4px}
+.setup-content{flex:1;overflow-y:auto;padding:16px}
+.setup-item{display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid var(--border);cursor:pointer}
+.setup-item-label{font-weight:600;font-size:16px}
+.setup-item-value{color:var(--gold);font-weight:600}
+
+/* Log items */
+.log-item{padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+.log-time{color:var(--muted);font-size:11px}
+
+/* Edit form overlay */
+#edit-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:3000;flex-direction:column}
+#edit-overlay.active{display:flex}
+
+/* Toast */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--card);color:var(--text);padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:8000;border:1px solid var(--gold-border);opacity:0;transition:.3s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Loading */
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+.spinner{display:inline-block;width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Empty state */
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state .emoji{font-size:40px;margin-bottom:12px}
+
+/* Add party inline */
+.add-party-row{display:flex;gap:8px;margin-bottom:16px}
+.add-party-row input{flex:1}
+.add-party-row .btn{width:auto;padding:12px 20px}
+
+/* Pending sync indicator */
+.pending-badge{display:inline-block;font-size:11px;color:var(--gold);margin-left:6px}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ -->
+<!-- PIN SCREEN                            -->
+<!-- ══════════════════════════════════════ -->
+<div id="pin-screen" class="active">
+  <div class="pin-icon">💰</div>
+  <div class="pin-title" id="pin-title">Shop Ledger</div>
+  <div class="pin-subtitle" id="pin-subtitle">Enter PIN to continue</div>
+  <div class="pin-dots" id="pin-dots"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
+  <div id="pin-name-section" style="display:none">
+    <input type="text" class="pin-name-input" id="pin-name-input" placeholder="Enter your name" maxlength="20">
+    <button class="pin-name-btn" id="pin-name-btn" disabled>Continue</button>
+  </div>
+  <div class="pin-keypad" id="pin-keypad">
+    <div class="pin-key" data-key="1">1</div><div class="pin-key" data-key="2">2</div><div class="pin-key" data-key="3">3</div>
+    <div class="pin-key" data-key="4">4</div><div class="pin-key" data-key="5">5</div><div class="pin-key" data-key="6">6</div>
+    <div class="pin-key" data-key="7">7</div><div class="pin-key" data-key="8">8</div><div class="pin-key" data-key="9">9</div>
+    <div class="pin-key backspace" data-key="back">✕</div><div class="pin-key" data-key="0">0</div><div class="pin-key submit" data-key="submit">→</div>
+  </div>
+  <div class="pin-error" id="pin-error"></div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- MAIN APP                              -->
+<!-- ══════════════════════════════════════ -->
+<div id="app" style="display:none">
+  <!-- Header -->
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="back-btn" id="back-btn" onclick="goBack()">←</span>
+      <div class="header-title"><span class="emoji">💰</span><span data-i18n="appTitle">Shop Ledger</span></div>
+    </div>
+    <div class="header-right">
+      <span id="user-badge" style="font-size:13px;color:var(--gold);font-weight:600"></span>
+      <span class="gear-btn" onclick="toggleSetup()">⚙️</span>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content" id="content">
+    <!-- SALES TAB -->
+    <div class="screen active" id="screen-sales">
+      <div class="type-toggle">
+        <div class="type-toggle-btn active-sale" id="toggle-sale" onclick="setEntryType('sale')"><span data-i18n="sale">Sale</span> 🟢</div>
+        <div class="type-toggle-btn" id="toggle-expense" onclick="setEntryType('expense')"><span data-i18n="expense">Expense</span> 🔴</div>
+      </div>
+      <div id="sale-form">
+        <div class="form-group">
+          <label class="form-label"><span data-i18n="amount">Amount</span> (₹) *</label>
+          <input type="number" id="sale-amount" placeholder="0" inputmode="numeric" min="1">
+        </div>
+        <div class="form-group" id="sale-method-group">
+          <label class="form-label"><span data-i18n="paymentMethod">Payment Method</span> *</label>
+          <div class="chips" id="sale-method-chips">
+            <div class="chip" data-method="Cash" onclick="setSaleMethod('Cash')"><span data-i18n="cash">Cash</span></div>
+            <div class="chip" data-method="UPI" onclick="setSaleMethod('UPI')">UPI</div>
+            <div class="chip" data-method="Cash+UPI" onclick="setSaleMethod('Cash+UPI')"><span data-i18n="cash">Cash</span>+UPI</div>
+          </div>
+        </div>
+        <div class="form-group" id="sale-party-group" style="display:none">
+          <label class="form-label"><span data-i18n="party">Party</span> *</label>
+          <select id="sale-party"><option value="">-- Select --</option></select>
+        </div>
+        <div class="form-group" id="sale-split-group" style="display:none">
+          <div class="form-row">
+            <div><label class="form-label"><span data-i18n="cash">Cash</span> (₹)</label><input type="number" id="sale-cash-amount" placeholder="0" inputmode="numeric"></div>
+            <div><label class="form-label">UPI (₹)</label><input type="number" id="sale-upi-amount" placeholder="0" inputmode="numeric"></div>
+          </div>
+          <div id="split-error" style="color:var(--red);font-size:13px;margin-top:6px;display:none"></div>
+        </div>
+        <div class="form-group" id="expense-method-group" style="display:none">
+          <label class="form-label"><span data-i18n="paymentMethod">Payment Method</span> *</label>
+          <div class="chips" id="expense-method-chips">
+            <div class="chip" data-method="Cash" onclick="setExpenseMethod('Cash')"><span data-i18n="cash">Cash</span></div>
+            <div class="chip" data-method="Online" onclick="setExpenseMethod('Online')"><span data-i18n="online">Online</span></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label"><span data-i18n="description">Description</span></label>
+          <input type="text" id="sale-desc" placeholder="">
+        </div>
+        <div class="form-group">
+          <label class="form-label"><span data-i18n="date">Date</span></label>
+          <input type="date" id="sale-date">
+        </div>
+        <button class="btn btn-gold" id="sale-save-btn" onclick="saveSaleEntry()" disabled>
+          <span data-i18n="save">Save</span> 💾
+        </button>
+        <div class="sync-status" id="sale-sync"></div>
+      </div>
+    </div>
+
+    <!-- PARTIES TAB -->
+    <div class="screen" id="screen-parties">
+      <div id="parties-list-view">
+        <div class="add-party-row">
+          <input type="text" id="add-party-name" placeholder="Party name" maxlength="30">
+          <button class="btn btn-gold btn-sm" onclick="addParty()">➕ <span data-i18n="add">Add</span></button>
+        </div>
+        <div id="parties-list"></div>
+      </div>
+      <div id="party-detail-view" style="display:none">
+        <div class="card" style="text-align:center">
+          <div style="font-size:20px;font-weight:700;margin-bottom:4px" id="party-detail-name"></div>
+          <div style="font-size:14px;color:var(--muted);margin-bottom:10px" data-i18n="balance">Balance</div>
+          <div class="amount" id="party-detail-balance"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:16px">
+          <button class="btn btn-green btn-sm" style="flex:1" onclick="showPartyTxnForm('Credit')">💰 <span data-i18n="moneyReceived">Paisa Aaya</span></button>
+          <button class="btn btn-red btn-sm" style="flex:1" onclick="showPartyTxnForm('Debit')">💸 <span data-i18n="moneyGiven">Paisa Gaya</span></button>
+        </div>
+        <div id="party-txn-form" style="display:none" class="card">
+          <div class="form-group">
+            <label class="form-label"><span data-i18n="amount">Amount</span> (₹) *</label>
+            <input type="number" id="ptxn-amount" placeholder="0" inputmode="numeric">
+          </div>
+          <div class="form-group">
+            <label class="form-label"><span data-i18n="paymentMethod">Method</span> *</label>
+            <div class="chips" id="ptxn-method-chips">
+              <div class="chip" data-method="Cash" onclick="setPtxnMethod('Cash')"><span data-i18n="cash">Cash</span></div>
+              <div class="chip" data-method="UPI" onclick="setPtxnMethod('UPI')">UPI</div>
+            </div>
+          </div>
+          <div class="form-group" id="ptxn-desc-group">
+            <label class="form-label"><span data-i18n="description">Description</span></label>
+            <input type="text" id="ptxn-desc" placeholder="">
+          </div>
+          <div class="form-group">
+            <label class="form-label"><span data-i18n="note">Note</span></label>
+            <input type="text" id="ptxn-note" placeholder="">
+          </div>
+          <div class="form-group">
+            <label class="form-label"><span data-i18n="date">Date</span></label>
+            <input type="date" id="ptxn-date">
+          </div>
+          <button class="btn btn-gold" onclick="savePartyTxn()"><span data-i18n="save">Save</span> 💾</button>
+          <div class="sync-status" id="ptxn-sync"></div>
+        </div>
+        <div class="section-title" style="margin-top:16px"><span data-i18n="history">History</span></div>
+        <div id="party-txn-list"></div>
+        <div style="margin-top:16px">
+          <button class="btn btn-red btn-sm" onclick="attemptDeleteParty()">🗑️ <span data-i18n="deleteParty">Delete Party</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div class="screen" id="screen-history">
+      <div class="card" id="summary-card">
+        <div class="section-title">📊 <span data-i18n="todaySummary">Today's Summary</span></div>
+        <div class="summary-grid">
+          <div class="summary-item"><div class="summary-label"><span data-i18n="totalSale">Total Sale</span> 🟢</div><div class="summary-value green" id="sum-sale">₹0</div><div class="summary-sub" id="sum-sale-detail"></div></div>
+          <div class="summary-item"><div class="summary-label"><span data-i18n="totalExpense">Total Expense</span> 🔴</div><div class="summary-value red" id="sum-expense">₹0</div><div class="summary-sub" id="sum-expense-detail"></div></div>
+        </div>
+        <div style="text-align:center;margin-bottom:8px">
+          <span style="font-size:14px;color:var(--muted)" data-i18n="net">Net</span>:
+          <span class="amount-sm" id="sum-net">₹0</span>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="exportSummary()">📄 <span data-i18n="exportSummary">Export Today's Summary</span></button>
+      </div>
+      <div class="form-group">
+        <label class="form-label"><span data-i18n="viewDate">View Date</span></label>
+        <input type="date" id="history-date" onchange="renderHistory()">
+      </div>
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+  <!-- Bottom Tabs -->
+  <div class="bottom-tabs">
+    <div class="tab-btn active" onclick="switchTab('sales')">
+      <span class="tab-icon">💰</span>
+      <span class="tab-label" data-i18n="sales">Sales</span>
+    </div>
+    <div class="tab-btn" onclick="switchTab('parties')">
+      <span class="tab-icon">🤝</span>
+      <span class="tab-label" data-i18n="parties">Parties</span>
+    </div>
+    <div class="tab-btn" onclick="switchTab('history')">
+      <span class="tab-icon">📊</span>
+      <span class="tab-label" data-i18n="history">History</span>
+    </div>
+  </div>
+</div>
+
+<!-- PIN Modal (for edit/delete confirmation) -->
+<div class="modal-overlay" id="pin-modal">
+  <div class="modal-card">
+    <div class="modal-title" id="modal-title" data-i18n="enterPin">Enter PIN</div>
+    <div class="modal-detail" id="modal-detail"></div>
+    <div class="modal-pin-input">
+      <input type="password" class="modal-pin-box" id="modal-pin-1" maxlength="1" inputmode="numeric" autocomplete="off">
+      <input type="password" class="modal-pin-box" id="modal-pin-2" maxlength="1" inputmode="numeric" autocomplete="off">
+      <input type="password" class="modal-pin-box" id="modal-pin-3" maxlength="1" inputmode="numeric" autocomplete="off">
+      <input type="password" class="modal-pin-box" id="modal-pin-4" maxlength="1" inputmode="numeric" autocomplete="off">
+    </div>
+    <div class="modal-error" id="modal-error"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline btn-sm" onclick="closePinModal()"><span data-i18n="cancel">Cancel</span></button>
+      <button class="btn btn-gold btn-sm" id="modal-confirm-btn" onclick="confirmPinModal()"><span data-i18n="confirm">Confirm</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Setup Screen -->
+<div id="setup-screen">
+  <div class="setup-header">
+    <span class="setup-close" onclick="toggleSetup()">←</span>
+    <span style="font-size:18px;font-weight:700" data-i18n="settings">Settings</span>
+  </div>
+  <div class="setup-content">
+    <div class="setup-item" onclick="toggleLanguage()">
+      <span class="setup-item-label" data-i18n="language">Language</span>
+      <span class="setup-item-value" id="lang-value">English</span>
+    </div>
+    <div class="setup-item" onclick="showLogs()">
+      <span class="setup-item-label" data-i18n="activityLog">Activity Log</span>
+      <span class="setup-item-value">→</span>
+    </div>
+    <div class="setup-item" onclick="showInstructions()">
+      <span class="setup-item-label" data-i18n="instructions">Instructions</span>
+      <span class="setup-item-value">→</span>
+    </div>
+    <div class="setup-item" onclick="logoutUser()">
+      <span class="setup-item-label" style="color:var(--red)">Logout</span>
+      <span class="setup-item-value" style="color:var(--red)">→</span>
+    </div>
+    <div id="setup-detail-area" style="margin-top:16px"></div>
+  </div>
+</div>
+
+<!-- Edit Overlay -->
+<div id="edit-overlay">
+  <div class="header" style="border-bottom:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:22px;cursor:pointer" onclick="closeEditOverlay()">←</span>
+      <span style="font-size:18px;font-weight:700" data-i18n="edit">Edit</span>
+    </div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:16px" id="edit-form-area"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Hidden iframe for writes -->
+<iframe id="write-iframe" style="display:none"></iframe>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════ */
+/* SHOP LEDGER — Complete JavaScript                                 */
+/* ══════════════════════════════════════════════════════════════════ */
+
+// ── CONFIG ──
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5JAouzBl6-BNMtTft7psydGu2Wllah6UcIWXD_hcI7sPAJCN4sdvoXgwcxYhpJG2K/exec';
+const LS_PREFIX = 'shopledger_';
+
+// ── STATE ──
+let currentUser = null; // {name, pinHash}
+let salesData = [];
+let partiesData = [];
+let partyTxnData = [];
+let currentTab = 'sales';
+let entryType = 'sale'; // sale or expense
+let saleMethod = '';
+let expenseMethod = '';
+let ptxnMethod = '';
+let currentParty = null; // party detail view
+let ptxnType = ''; // Credit or Debit
+let pinModalCallback = null;
+let lang = 'en';
+let navStack = [];
+let pendingSync = [];
+
+// ── i18n ──
+const T = {
+  en: {
+    appTitle:'Shop Ledger', sales:'Sales', parties:'Parties', history:'History',
+    sale:'Sale', expense:'Expense', amount:'Amount', paymentMethod:'Payment Method',
+    cash:'Cash', online:'Online', party:'Party', description:'Description', date:'Date',
+    save:'Save', add:'Add', cancel:'Cancel', confirm:'Confirm', delete:'Delete', edit:'Edit',
+    balance:'Balance', moneyReceived:'Paisa Aaya', moneyGiven:'Paisa Gaya',
+    todaySummary:"Today's Summary", totalSale:'Total Sale', totalExpense:'Total Expense',
+    net:'Net', exportSummary:"Export Today's Summary", viewDate:'View Date',
+    enterPin:'Enter PIN', wrongPin:'Wrong PIN', note:'Note',
+    today:'Today', yesterday:'Yesterday', settings:'Settings', language:'Language',
+    instructions:'Instructions', activityLog:'Activity Log',
+    addedBy:'Added by', editedBy:'Edited by', deleteParty:'Delete Party',
+    noEntries:'No entries yet', addFirst:'Add your first entry!',
+    saved:'✓ Saved & synced', saving:'Saving...', pendingSync:'⟳ Pending sync',
+    deleteConfirm:'Delete this entry?', editNotAllowed:'Delete this and add again',
+    clearBalance:'Clear balance before deleting', duplicateParty:'Party already exists',
+    duplicatePin:'PIN already taken', masterPinTitle:'Enter Master PIN',
+    personalPinTitle:'Enter Your PIN', setPinTitle:'Set Your 4-Digit PIN',
+    enterName:'Enter Your Name', firstAccess:'First time access', welcome:'Welcome back',
+    registration:'New user setup', confirmSetPin:'Confirm your PIN',
+  },
+  hi: {
+    appTitle:'दुकान खाता', sales:'बिक्री', parties:'पार्टियां', history:'इतिहास',
+    sale:'बिक्री', expense:'खर्चा', amount:'राशि', paymentMethod:'भुगतान का तरीका',
+    cash:'नकद', online:'ऑनलाइन', party:'पार्टी', description:'विवरण', date:'तारीख',
+    save:'सेव करें', add:'जोड़ें', cancel:'रद्द करें', confirm:'पक्का करें', delete:'हटाएं', edit:'बदलें',
+    balance:'बैलेंस', moneyReceived:'पैसा आया', moneyGiven:'पैसा गया',
+    todaySummary:'आज का सारांश', totalSale:'कुल बिक्री', totalExpense:'कुल खर्चा',
+    net:'शुद्ध', exportSummary:'आज का सारांश डाउनलोड करें', viewDate:'तारीख चुनें',
+    enterPin:'पिन डालें', wrongPin:'गलत पिन', note:'नोट',
+    today:'आज', yesterday:'कल', settings:'सेटिंग्स', language:'भाषा',
+    instructions:'निर्देश', activityLog:'गतिविधि लॉग',
+    addedBy:'जोड़ा -', editedBy:'बदला -', deleteParty:'पार्टी हटाएं',
+    noEntries:'कोई एंट्री नहीं', addFirst:'पहली एंट्री जोड़ें!',
+    saved:'✓ सेव हो गया', saving:'सेव हो रहा है...', pendingSync:'⟳ सिंक बाकी',
+    deleteConfirm:'यह एंट्री हटाएं?', editNotAllowed:'पहले हटाएं, फिर नई डालें',
+    clearBalance:'पहले बैलेंस क्लियर करें', duplicateParty:'पार्टी पहले से है',
+    duplicatePin:'यह पिन पहले से है', masterPinTitle:'मास्टर पिन डालें',
+    personalPinTitle:'अपना पिन डालें', setPinTitle:'4 अंक का पिन सेट करें',
+    enterName:'अपना नाम लिखें', firstAccess:'पहली बार', welcome:'वापस स्वागत है',
+    registration:'नए उपयोगकर्ता', confirmSetPin:'पिन की पुष्टि करें',
+  }
+};
+function t(key){ return (T[lang] && T[lang][key]) || T.en[key] || key; }
+function updateI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.getElementById('lang-value').textContent = lang==='en'?'English':'हिंदी';
+}
+
+// ── UTILS ──
+function formatINR(n){
+  if(n===undefined||n===null||isNaN(n)) return '₹0';
+  n = Math.round(Number(n));
+  const neg = n<0; if(neg) n=-n;
+  let s=n.toString(), last3=s.slice(-3), rest=s.slice(0,-3);
+  if(rest) rest=rest.replace(/\B(?=(\d{2})+(?!\d))/g,',');
+  return (neg?'-':'')+'₹'+(rest?rest+',':'')+last3;
+}
+function todayStr(){ return new Date().toISOString().split('T')[0]; }
+function dateDisplay(d){
+  if(!d) return '';
+  const dt=new Date(d+'T00:00:00');
+  return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+}
+function lsGet(k){ try{return JSON.parse(localStorage.getItem(LS_PREFIX+k))}catch(e){return null} }
+function lsSet(k,v){ localStorage.setItem(LS_PREFIX+k,JSON.stringify(v)) }
+function lsDel(k){ localStorage.removeItem(LS_PREFIX+k) }
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── SHA-256 (with fallback for file:// protocol) ──
+async function sha256(message){
+  try{
+    // Try Web Crypto API first (works on https:// and localhost)
+    const buf = new TextEncoder().encode(message);
+    const hash = await crypto.subtle.digest('SHA-256',buf);
+    return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){
+    // Fallback: pure JS SHA-256 for file:// protocol
+    return sha256Fallback(message);
+  }
+}
+function sha256Fallback(msg){
+  function rr(n,x){return(x>>>n)|(x<<(32-n))}
+  function ch(x,y,z){return(x&y)^(~x&z)}
+  function maj(x,y,z){return(x&y)^(x&z)^(y&z)}
+  function s0(x){return rr(2,x)^rr(13,x)^rr(22,x)}
+  function s1(x){return rr(6,x)^rr(11,x)^rr(25,x)}
+  function g0(x){return rr(7,x)^rr(18,x)^(x>>>3)}
+  function g1(x){return rr(17,x)^rr(19,x)^(x>>>10)}
+  const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  let H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const bytes=new TextEncoder().encode(msg);
+  const bits=bytes.length*8;
+  const padded=new Uint8Array(Math.ceil((bytes.length+9)/64)*64);
+  padded.set(bytes);padded[bytes.length]=0x80;
+  const dv=new DataView(padded.buffer);
+  dv.setUint32(padded.length-4,bits,false);
+  for(let off=0;off<padded.length;off+=64){
+    const W=new Array(64);
+    for(let i=0;i<16;i++) W[i]=dv.getUint32(off+i*4,false);
+    for(let i=16;i<64;i++) W[i]=(g1(W[i-2])+W[i-7]+g0(W[i-15])+W[i-16])>>>0;
+    let[a,b,c,d,e,f,g,h]=H;
+    for(let i=0;i<64;i++){
+      const T1=(h+s1(e)+ch(e,f,g)+K[i]+W[i])>>>0;
+      const T2=(s0(a)+maj(a,b,c))>>>0;
+      h=g;g=f;f=e;e=(d+T1)>>>0;d=c;c=b;b=a;a=(T1+T2)>>>0;
+    }
+    H=[a,b,c,d,e,f,g,h].map((v,i)=>(v+H[i])>>>0);
+  }
+  return H.map(v=>v.toString(16).padStart(8,'0')).join('');
+}
+
+// ── API HELPERS ──
+let jsonpCounter = 0;
+function jsonpFetch(mode, params={}){
+  return new Promise((resolve, reject)=>{
+    const cbName = '_sl_cb_'+(jsonpCounter++);
+    params.mode = mode;
+    params.callback = cbName;
+    const qs = Object.keys(params).map(k=>encodeURIComponent(k)+'='+encodeURIComponent(params[k]||'')).join('&');
+    const url = SCRIPT_URL+'?'+qs;
+    const timeout = setTimeout(()=>{
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+      reject(new Error('Timeout'));
+    }, 15000);
+    window[cbName] = function(data){
+      clearTimeout(timeout);
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+      resolve(data);
+    };
+    const script = document.createElement('script');
+    script.src = url;
+    script.onerror = function(){
+      clearTimeout(timeout);
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+      reject(new Error('Network error'));
+    };
+    document.body.appendChild(script);
+  });
+}
+
+function fireAndForget(mode, params={}){
+  params.mode = mode;
+  const qs = Object.keys(params).map(k=>encodeURIComponent(k)+'='+encodeURIComponent(params[k]||'')).join('&');
+  const url = SCRIPT_URL+'?'+qs;
+  fetch(url, {mode:'no-cors'}).catch(()=>{
+    document.getElementById('write-iframe').src = url;
+  });
+}
+
+// ── DATA LOADING ──
+async function loadAllData(){
+  try{
+    const [sales, parties, ptxns] = await Promise.all([
+      jsonpFetch('read'),
+      jsonpFetch('readCategories'),
+      jsonpFetch('readAllPartyTransactions')
+    ]);
+    salesData = sales || [];
+    partiesData = parties || [];
+    partyTxnData = ptxns || [];
+    lsSet('sales', salesData);
+    lsSet('parties', partiesData);
+    lsSet('partyTxn', partyTxnData);
+  }catch(e){
+    salesData = lsGet('sales') || [];
+    partiesData = lsGet('parties') || [];
+    partyTxnData = lsGet('partyTxn') || [];
+  }
+}
+
+function loadCachedData(){
+  salesData = lsGet('sales') || [];
+  partiesData = lsGet('parties') || [];
+  partyTxnData = lsGet('partyTxn') || [];
+}
+
+// ══════════════════════════════════════
+// PIN SYSTEM
+// ══════════════════════════════════════
+let pinMode = 'master'; // master, personal, register-name, register-pin, register-confirm
+let pinBuffer = '';
+let registerName = '';
+let registerPinHash = '';
+
+function initPinSystem(){
+  const masterOk = lsGet('masterPinOk');
+  const users = lsGet('users') || [];
+  if(!masterOk){
+    pinMode = 'master';
+    updatePinUI();
+  } else if(users.length > 0){
+    pinMode = 'personal';
+    updatePinUI();
+  } else {
+    pinMode = 'register-name';
+    updatePinUI();
+  }
+}
+
+function updatePinUI(){
+  const titleEl = document.getElementById('pin-title');
+  const subEl = document.getElementById('pin-subtitle');
+  const nameSection = document.getElementById('pin-name-section');
+  const keypad = document.getElementById('pin-keypad');
+  const dots = document.getElementById('pin-dots');
+
+  nameSection.style.display = 'none';
+  keypad.style.display = 'grid';
+  dots.style.display = 'flex';
+  document.getElementById('pin-error').textContent = '';
+  pinBuffer = '';
+  updatePinDots();
+
+  if(pinMode==='master'){
+    titleEl.textContent = t('masterPinTitle');
+    subEl.textContent = t('firstAccess');
+  } else if(pinMode==='personal'){
+    titleEl.textContent = t('personalPinTitle');
+    subEl.textContent = t('welcome');
+  } else if(pinMode==='register-name'){
+    titleEl.textContent = t('enterName');
+    subEl.textContent = t('registration');
+    nameSection.style.display = 'flex';
+    nameSection.style.flexDirection = 'column';
+    nameSection.style.alignItems = 'center';
+    keypad.style.display = 'none';
+    dots.style.display = 'none';
+    document.getElementById('pin-name-input').value = '';
+    document.getElementById('pin-name-input').focus();
+  } else if(pinMode==='register-pin'){
+    titleEl.textContent = t('setPinTitle');
+    subEl.textContent = registerName;
+  } else if(pinMode==='register-confirm'){
+    titleEl.textContent = t('confirmSetPin');
+    subEl.textContent = registerName;
+  }
+}
+
+function updatePinDots(){
+  document.querySelectorAll('#pin-dots .pin-dot').forEach((dot,i)=>{
+    dot.classList.toggle('filled', i < pinBuffer.length);
+    dot.classList.remove('error');
+  });
+}
+
+function pinError(msg){
+  document.getElementById('pin-error').textContent = msg;
+  document.querySelectorAll('#pin-dots .pin-dot').forEach(d=>d.classList.add('error'));
+  setTimeout(()=>{
+    pinBuffer='';
+    updatePinDots();
+    document.getElementById('pin-error').textContent='';
+  },1200);
+}
+
+// Keypad handler
+document.getElementById('pin-keypad').addEventListener('click', function(e){
+  const key = e.target.closest('.pin-key');
+  if(!key) return;
+  const val = key.dataset.key;
+  if(val==='back'){
+    pinBuffer = pinBuffer.slice(0,-1);
+    updatePinDots();
+    return;
+  }
+  if(val==='submit'){
+    if(pinBuffer.length===4) handlePinComplete();
+    return;
+  }
+  if(val===''||pinBuffer.length>=4) return;
+  pinBuffer += val;
+  updatePinDots();
+});
+
+async function handlePinComplete(){
+  const pin = pinBuffer;
+  const hash = await sha256(pin);
+
+  if(pinMode==='master'){
+    document.getElementById('pin-error').textContent = 'Verifying...';
+    try{
+      const config = await jsonpFetch('readConfig');
+      if(config.MasterPINHash === hash){
+        lsSet('masterPinOk', true);
+        document.getElementById('pin-error').textContent = '';
+        let users = [];
+        try{ users = await jsonpFetch('readUsers'); }catch(e){}
+        lsSet('users', users);
+        if(users.length > 0){
+          pinMode = 'personal';
+        } else {
+          pinMode = 'register-name';
+        }
+        updatePinUI();
+      } else {
+        pinError(t('wrongPin'));
+      }
+    }catch(e){
+      // Retry once after 2 seconds
+      setTimeout(async()=>{
+        try{
+          const config = await jsonpFetch('readConfig');
+          if(config.MasterPINHash === hash){
+            lsSet('masterPinOk', true);
+            let users = [];
+            try{ users = await jsonpFetch('readUsers'); }catch(e){}
+            lsSet('users', users);
+            if(users.length > 0){ pinMode = 'personal'; } else { pinMode = 'register-name'; }
+            updatePinUI();
+          } else {
+            pinError(t('wrongPin'));
+          }
+        }catch(e2){
+          pinError('Error: ' + e2.message + ' — check internet');
+        }
+      }, 2000);
+    }
+  } else if(pinMode==='personal'){
+    // Check locally first
+    const users = lsGet('users') || [];
+    const found = users.find(u=>u.pinHash===hash);
+    if(found){
+      loginAs(found.name, hash);
+      // Background verify
+      jsonpFetch('verifyPin',{pinHash:hash}).then(res=>{
+        if(!res.valid){
+          lsDel('users');
+          logoutUser();
+        }
+      }).catch(()=>{});
+    } else {
+      // Check server
+      try{
+        const res = await jsonpFetch('verifyPin',{pinHash:hash});
+        if(res.valid){
+          users.push({name:res.name, pinHash:hash});
+          lsSet('users', users);
+          loginAs(res.name, hash);
+        } else {
+          // Maybe new user
+          pinMode = 'register-name';
+          updatePinUI();
+        }
+      }catch(e){
+        pinError(t('wrongPin'));
+      }
+    }
+  } else if(pinMode==='register-pin'){
+    registerPinHash = hash;
+    pinMode = 'register-confirm';
+    updatePinUI();
+  } else if(pinMode==='register-confirm'){
+    if(hash === registerPinHash){
+      // Register
+      try{
+        const users = await jsonpFetch('readUsers');
+        const dup = users.find(u=>u.pinHash===hash);
+        if(dup){
+          pinError(t('duplicatePin'));
+          pinMode = 'register-pin';
+          registerPinHash = '';
+          setTimeout(()=>updatePinUI(),1500);
+          return;
+        }
+        fireAndForget('register',{name:registerName, pinHash:hash});
+        const localUsers = lsGet('users') || [];
+        localUsers.push({name:registerName, pinHash:hash});
+        lsSet('users', localUsers);
+        loginAs(registerName, hash);
+      }catch(e){
+        pinError('Network error');
+      }
+    } else {
+      pinError(t('wrongPin'));
+      pinMode = 'register-pin';
+      registerPinHash = '';
+      setTimeout(()=>updatePinUI(),1500);
+    }
+  }
+}
+
+// Name input
+document.getElementById('pin-name-input').addEventListener('input', function(){
+  document.getElementById('pin-name-btn').disabled = this.value.trim().length < 1;
+});
+document.getElementById('pin-name-btn').addEventListener('click', function(){
+  registerName = document.getElementById('pin-name-input').value.trim();
+  if(registerName){
+    pinMode = 'register-pin';
+    updatePinUI();
+  }
+});
+
+function loginAs(name, hash){
+  currentUser = {name, pinHash:hash};
+  sessionStorage.setItem('sl_user', JSON.stringify(currentUser));
+  document.getElementById('pin-screen').classList.remove('active');
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('user-badge').textContent = name;
+  initApp();
+}
+
+function logoutUser(){
+  currentUser = null;
+  sessionStorage.removeItem('sl_user');
+  lsDel('users');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('pin-screen').classList.add('active');
+  pinMode = 'personal';
+  updatePinUI();
+}
+
+// ══════════════════════════════════════
+// APP INIT
+// ══════════════════════════════════════
+async function initApp(){
+  lang = lsGet('lang') || 'en';
+  updateI18n();
+  document.getElementById('sale-date').value = todayStr();
+  document.getElementById('ptxn-date').value = todayStr();
+  document.getElementById('history-date').value = todayStr();
+  loadCachedData();
+  renderAll();
+  await loadAllData();
+  populatePartyDropdown();
+  renderAll();
+}
+
+function renderAll(){
+  populatePartyDropdown();
+  renderParties();
+  renderHistory();
+  updateSaveBtn();
+}
+
+// ══════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════
+function switchTab(tab){
+  currentTab = tab;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+tab).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active', ['sales','parties','history'][i]===tab);
+  });
+  // Reset party detail
+  if(tab==='parties'){
+    document.getElementById('parties-list-view').style.display='block';
+    document.getElementById('party-detail-view').style.display='none';
+    document.getElementById('back-btn').style.display='none';
+    navStack=[];
+    renderParties();
+  } else if(tab==='history'){
+    renderHistory();
+    document.getElementById('back-btn').style.display='none';
+    navStack=[];
+  } else {
+    document.getElementById('back-btn').style.display='none';
+    navStack=[];
+  }
+}
+
+function goBack(){
+  if(navStack.length){
+    const prev = navStack.pop();
+    if(prev==='parties-list'){
+      document.getElementById('parties-list-view').style.display='block';
+      document.getElementById('party-detail-view').style.display='none';
+    }
+    if(navStack.length===0) document.getElementById('back-btn').style.display='none';
+  }
+}
+
+// ══════════════════════════════════════
+// SALES TAB
+// ══════════════════════════════════════
+function setEntryType(type){
+  entryType = type;
+  saleMethod = '';
+  expenseMethod = '';
+  document.getElementById('toggle-sale').className = 'type-toggle-btn'+(type==='sale'?' active-sale':'');
+  document.getElementById('toggle-expense').className = 'type-toggle-btn'+(type==='expense'?' active-expense':'');
+  document.getElementById('sale-method-group').style.display = type==='sale'?'block':'none';
+  document.getElementById('expense-method-group').style.display = type==='expense'?'block':'none';
+  document.getElementById('sale-party-group').style.display = 'none';
+  document.getElementById('sale-split-group').style.display = 'none';
+  document.querySelectorAll('#sale-method-chips .chip, #expense-method-chips .chip').forEach(c=>c.classList.remove('active'));
+  updateSaveBtn();
+}
+
+function setSaleMethod(m){
+  saleMethod = m;
+  document.querySelectorAll('#sale-method-chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.method===m));
+  document.getElementById('sale-party-group').style.display = (m==='UPI'||m==='Cash+UPI')?'block':'none';
+  document.getElementById('sale-split-group').style.display = m==='Cash+UPI'?'block':'none';
+  updateSaveBtn();
+}
+
+function setExpenseMethod(m){
+  expenseMethod = m;
+  document.querySelectorAll('#expense-method-chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.method===m));
+  updateSaveBtn();
+}
+
+function populatePartyDropdown(){
+  const sel = document.getElementById('sale-party');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">-- Select --</option>';
+  partiesData.forEach(p=>{
+    sel.innerHTML += `<option value="${p.partyName}">${p.partyName}</option>`;
+  });
+  sel.innerHTML += '<option value="Other">Other</option>';
+  sel.value = current;
+}
+
+function updateSaveBtn(){
+  const amt = document.getElementById('sale-amount').value;
+  let valid = amt && Number(amt) > 0;
+  if(entryType==='sale'){
+    valid = valid && saleMethod;
+    if(saleMethod==='UPI'||saleMethod==='Cash+UPI'){
+      valid = valid && document.getElementById('sale-party').value;
+    }
+    if(saleMethod==='Cash+UPI'){
+      const ca = Number(document.getElementById('sale-cash-amount').value)||0;
+      const ua = Number(document.getElementById('sale-upi-amount').value)||0;
+      valid = valid && ca>0 && ua>0 && (ca+ua)===Number(amt);
+    }
+  } else {
+    valid = valid && expenseMethod;
+  }
+  document.getElementById('sale-save-btn').disabled = !valid;
+}
+
+// Attach input listeners for validation
+['sale-amount','sale-cash-amount','sale-upi-amount','sale-party'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', ()=>{
+    updateSaveBtn();
+    // Split validation
+    if(saleMethod==='Cash+UPI'){
+      const total = Number(document.getElementById('sale-amount').value)||0;
+      const ca = Number(document.getElementById('sale-cash-amount').value)||0;
+      const ua = Number(document.getElementById('sale-upi-amount').value)||0;
+      const err = document.getElementById('split-error');
+      if(ca && ua && (ca+ua)!==total){
+        err.style.display='block';
+        err.textContent = `Cash + UPI = ${formatINR(ca+ua)} ≠ ${formatINR(total)}`;
+      } else {
+        err.style.display='none';
+      }
+    }
+  });
+  if(el) el.addEventListener('change', updateSaveBtn);
+});
+
+async function saveSaleEntry(){
+  const btn = document.getElementById('sale-save-btn');
+  btn.disabled = true;
+  const syncEl = document.getElementById('sale-sync');
+  syncEl.textContent = t('saving');
+
+  const entryId = String(Date.now());
+  const date = document.getElementById('sale-date').value || todayStr();
+  const amount = Number(document.getElementById('sale-amount').value);
+  const desc = document.getElementById('sale-desc').value.trim();
+
+  if(entryType==='sale'){
+    const method = saleMethod;
+    const party = (method==='UPI'||method==='Cash+UPI') ? document.getElementById('sale-party').value : '';
+    const cashAmt = method==='Cash+UPI' ? Number(document.getElementById('sale-cash-amount').value) : (method==='Cash'?amount:0);
+    const upiAmt = method==='Cash+UPI' ? Number(document.getElementById('sale-upi-amount').value) : (method==='UPI'?amount:0);
+
+    fireAndForget('write',{
+      date, type:'Sale', amount, cashAmount:cashAmt, upiAmount:upiAmt,
+      paymentMethod:method, party, description:desc, addedBy:currentUser.name, entryId
+    });
+
+    // Auto-link party transaction
+    if((method==='UPI'||method==='Cash+UPI') && party && party!=='Other'){
+      fireAndForget('writePartyTransaction',{
+        date, partyName:party, type:'Credit', amount:upiAmt, method:'UPI',
+        description:'', note:'Added via sale', source:'Via Sale', addedBy:currentUser.name, entryId
+      });
+    }
+
+    // Add to local cache
+    salesData.unshift({date, type:'Sale', amount, cashAmount:cashAmt, upiAmount:upiAmt, paymentMethod:method, party, description:desc, addedBy:currentUser.name, editedBy:'', entryId});
+    if((method==='UPI'||method==='Cash+UPI') && party && party!=='Other'){
+      partyTxnData.unshift({date, partyName:party, type:'Credit', amount:upiAmt, method:'UPI', description:'', note:'Added via sale', source:'Via Sale', addedBy:currentUser.name, editedBy:'', entryId});
+    }
+  } else {
+    const method = expenseMethod;
+    fireAndForget('write',{
+      date, type:'Expense', amount, cashAmount:method==='Cash'?amount:0, upiAmount:0,
+      paymentMethod:method, party:'', description:desc, addedBy:currentUser.name, entryId
+    });
+    salesData.unshift({date, type:'Expense', amount, cashAmount:method==='Cash'?amount:0, upiAmount:0, paymentMethod:method, party:'', description:desc, addedBy:currentUser.name, editedBy:'', entryId});
+  }
+
+  lsSet('sales', salesData);
+  lsSet('partyTxn', partyTxnData);
+  syncEl.textContent = t('saved');
+  showToast(t('saved'));
+  resetSaleForm();
+  renderAll();
+
+  // Refresh from server after delay
+  setTimeout(async()=>{
+    await loadAllData();
+    renderAll();
+    syncEl.textContent = '';
+  }, 1500);
+}
+
+function resetSaleForm(){
+  document.getElementById('sale-amount').value = '';
+  document.getElementById('sale-desc').value = '';
+  document.getElementById('sale-cash-amount').value = '';
+  document.getElementById('sale-upi-amount').value = '';
+  document.getElementById('sale-party').value = '';
+  document.getElementById('sale-date').value = todayStr();
+  saleMethod=''; expenseMethod='';
+  document.querySelectorAll('#sale-method-chips .chip, #expense-method-chips .chip').forEach(c=>c.classList.remove('active'));
+  document.getElementById('sale-party-group').style.display='none';
+  document.getElementById('sale-split-group').style.display='none';
+  document.getElementById('split-error').style.display='none';
+  updateSaveBtn();
+}
+
+// ══════════════════════════════════════
+// PARTIES TAB
+// ══════════════════════════════════════
+function renderParties(){
+  const list = document.getElementById('parties-list');
+  if(!partiesData.length){
+    list.innerHTML = `<div class="empty-state"><div class="emoji">🤝</div><div>${t('noEntries')}</div></div>`;
+    return;
+  }
+  list.innerHTML = partiesData.map(p=>{
+    const bal = calcPartyBalance(p.partyName);
+    const color = bal>=0?'green':'red';
+    return `<div class="party-item" onclick="openPartyDetail('${p.partyName.replace(/'/g,"\\'")}')">
+      <div><div class="party-name">${p.partyName}</div></div>
+      <div style="display:flex;align-items:center"><span class="party-balance ${color}">${formatINR(bal)}</span><span class="party-arrow">›</span></div>
+    </div>`;
+  }).join('');
+}
+
+function calcPartyBalance(partyName){
+  let credits = 0, debits = 0;
+  partyTxnData.forEach(t=>{
+    if(t.partyName===partyName){
+      if(t.type==='Credit') credits+=Number(t.amount);
+      else if(t.type==='Debit') debits+=Number(t.amount);
+    }
+  });
+  return credits - debits;
+}
+
+function addParty(){
+  const name = document.getElementById('add-party-name').value.trim();
+  if(!name) return;
+  if(partiesData.find(p=>p.partyName.toLowerCase()===name.toLowerCase())){
+    showToast(t('duplicateParty'));
+    return;
+  }
+  const partyId = String(Date.now());
+  fireAndForget('addParty',{partyName:name, createdBy:currentUser.name, partyId});
+  partiesData.push({partyName:name, createdDate:todayStr(), createdBy:currentUser.name, partyId});
+  lsSet('parties', partiesData);
+  document.getElementById('add-party-name').value='';
+  renderParties();
+  populatePartyDropdown();
+  showToast(t('saved'));
+}
+
+function openPartyDetail(name){
+  currentParty = name;
+  navStack.push('parties-list');
+  document.getElementById('back-btn').style.display='inline';
+  document.getElementById('parties-list-view').style.display='none';
+  document.getElementById('party-detail-view').style.display='block';
+  document.getElementById('party-detail-name').textContent = name;
+  document.getElementById('party-txn-form').style.display='none';
+  ptxnType = '';
+  renderPartyDetail();
+}
+
+function renderPartyDetail(){
+  const bal = calcPartyBalance(currentParty);
+  const balEl = document.getElementById('party-detail-balance');
+  balEl.textContent = formatINR(bal);
+  balEl.className = 'amount '+(bal>=0?'green':'red');
+
+  const txns = partyTxnData.filter(t=>t.partyName===currentParty).sort((a,b)=>(b.entryId||0)-(a.entryId||0));
+  const list = document.getElementById('party-txn-list');
+  if(!txns.length){
+    list.innerHTML = `<div class="empty-state" style="padding:20px"><div>${t('noEntries')}</div></div>`;
+    return;
+  }
+  list.innerHTML = txns.map(tx=>{
+    const isCredit = tx.type==='Credit';
+    const viaTag = tx.source==='Via Sale'?`<span class="txn-tag">Via Sale</span>`:'';
+    return `<div class="txn-item">
+      <div class="txn-icon">${isCredit?'🟢':'🔴'}</div>
+      <div class="txn-body">
+        <div class="txn-top"><span class="txn-amount ${isCredit?'green':'red'}">${formatINR(tx.amount)}</span><span class="txn-method">${tx.method||''}</span></div>
+        ${tx.note?`<div class="txn-desc">${tx.note}</div>`:''}
+        <div class="txn-meta"><span>${dateDisplay(tx.date)}</span><span>${t('addedBy')} ${tx.addedBy||''}</span>${viaTag}</div>
+      </div>
+      <div class="txn-actions">
+        ${tx.source!=='Via Sale'?`<span class="txn-action-btn" onclick="editPartyTxn('${tx.entryId}')">✏️</span><span class="txn-action-btn" onclick="deletePartyTxn('${tx.entryId}')">✕</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showPartyTxnForm(type){
+  ptxnType = type;
+  document.getElementById('party-txn-form').style.display='block';
+  document.getElementById('ptxn-amount').value='';
+  document.getElementById('ptxn-desc').value='';
+  document.getElementById('ptxn-note').value='';
+  document.getElementById('ptxn-date').value = todayStr();
+  document.getElementById('ptxn-sync').textContent = '';
+  // Pre-select method
+  ptxnMethod = type==='Credit'?'UPI':'Cash';
+  document.querySelectorAll('#ptxn-method-chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.method===ptxnMethod));
+  // Show/hide description for credit
+  document.getElementById('ptxn-desc-group').style.display = type==='Credit'?'block':'none';
+}
+
+function setPtxnMethod(m){
+  ptxnMethod = m;
+  document.querySelectorAll('#ptxn-method-chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.method===m));
+}
+
+function savePartyTxn(){
+  const amt = Number(document.getElementById('ptxn-amount').value);
+  if(!amt || amt<=0 || !ptxnMethod) return;
+  const entryId = String(Date.now());
+  const date = document.getElementById('ptxn-date').value || todayStr();
+  const desc = document.getElementById('ptxn-desc').value.trim();
+  const note = document.getElementById('ptxn-note').value.trim();
+
+  fireAndForget('writePartyTransaction',{
+    date, partyName:currentParty, type:ptxnType, amount:amt, method:ptxnMethod,
+    description:desc, note, source:'Manual', addedBy:currentUser.name, entryId
+  });
+
+  partyTxnData.unshift({date, partyName:currentParty, type:ptxnType, amount:amt, method:ptxnMethod, description:desc, note, source:'Manual', addedBy:currentUser.name, editedBy:'', entryId});
+  lsSet('partyTxn', partyTxnData);
+  document.getElementById('ptxn-sync').textContent = t('saved');
+  document.getElementById('party-txn-form').style.display='none';
+  renderPartyDetail();
+  showToast(t('saved'));
+  setTimeout(async()=>{ await loadAllData(); renderPartyDetail(); },1500);
+}
+
+function attemptDeleteParty(){
+  const bal = calcPartyBalance(currentParty);
+  if(bal!==0){
+    showToast(t('clearBalance'));
+    return;
+  }
+  const party = partiesData.find(p=>p.partyName===currentParty);
+  if(!party) return;
+  openPinModal(t('deleteConfirm'), currentParty, async()=>{
+    fireAndForget('deleteParty',{partyId:party.partyId, deletedBy:currentUser.name});
+    partiesData = partiesData.filter(p=>p.partyName!==currentParty);
+    partyTxnData = partyTxnData.filter(t=>t.partyName!==currentParty);
+    lsSet('parties', partiesData);
+    lsSet('partyTxn', partyTxnData);
+    goBack();
+    renderParties();
+    populatePartyDropdown();
+    showToast(t('saved'));
+  });
+}
+
+// ══════════════════════════════════════
+// HISTORY TAB
+// ══════════════════════════════════════
+function renderHistory(){
+  const selDate = document.getElementById('history-date').value || todayStr();
+  const today = todayStr();
+  const yesterday = new Date(Date.now()-86400000).toISOString().split('T')[0];
+
+  // Summary for today
+  const todaySales = salesData.filter(s=>s.date===today);
+  let saleTotal=0, saleCash=0, saleOnline=0, expTotal=0, expCash=0, expOnline=0;
+  todaySales.forEach(s=>{
+    const amt=Number(s.amount);
+    if(s.type==='Sale'){
+      saleTotal+=amt;
+      saleCash+=Number(s.cashAmount)||0;
+      saleOnline+=Number(s.upiAmount)||0;
+    } else {
+      expTotal+=amt;
+      if(s.paymentMethod==='Cash') expCash+=amt; else expOnline+=amt;
+    }
+  });
+  document.getElementById('sum-sale').textContent = formatINR(saleTotal);
+  document.getElementById('sum-expense').textContent = formatINR(expTotal);
+  document.getElementById('sum-sale-detail').textContent = `${t('cash')}: ${formatINR(saleCash)} | UPI: ${formatINR(saleOnline)}`;
+  document.getElementById('sum-expense-detail').textContent = `${t('cash')}: ${formatINR(expCash)} | ${t('online')}: ${formatINR(expOnline)}`;
+  const net = saleTotal - expTotal;
+  const netEl = document.getElementById('sum-net');
+  netEl.textContent = formatINR(net);
+  netEl.className = 'amount-sm '+(net>=0?'green':'red');
+
+  // Transaction list
+  const list = document.getElementById('history-list');
+  let dates = [selDate];
+  if(selDate===today) dates = [today, yesterday];
+
+  let html = '';
+  dates.forEach(d=>{
+    const label = d===today?t('today'):d===yesterday?t('yesterday'):dateDisplay(d);
+    const entries = salesData.filter(s=>s.date===d).sort((a,b)=>(b.entryId||0)-(a.entryId||0));
+    html += `<div class="date-sep">——— ${label} ———</div>`;
+    if(!entries.length){
+      html += `<div style="text-align:center;color:var(--muted);padding:12px;font-size:14px">${t('noEntries')}</div>`;
+    }
+    entries.forEach(s=>{
+      const isSale = s.type==='Sale';
+      const canEdit = (isSale && s.paymentMethod==='Cash') || !isSale;
+      html += `<div class="txn-item">
+        <div class="txn-icon">${isSale?'🟢':'🔴'}</div>
+        <div class="txn-body">
+          <div class="txn-top">
+            <span class="txn-amount ${isSale?'green':'red'}">${formatINR(s.amount)}</span>
+            <span class="txn-method">${s.paymentMethod}${s.party?' · '+s.party:''}</span>
+          </div>
+          ${s.description?`<div class="txn-desc">${s.description}</div>`:''}
+          <div class="txn-meta">
+            <span>${dateDisplay(s.date)}</span>
+            <span>${t('addedBy')} ${s.addedBy||''}</span>
+            ${s.editedBy?`<span>${t('editedBy')} ${s.editedBy}</span>`:''}
+          </div>
+        </div>
+        <div class="txn-actions">
+          <span class="txn-action-btn" onclick="${canEdit?`editSaleEntry('${s.entryId}')`:`showToast('${t('editNotAllowed')}')`}">✏️</span>
+          <span class="txn-action-btn" onclick="deleteSaleEntry('${s.entryId}')">✕</span>
+        </div>
+      </div>`;
+    });
+  });
+  list.innerHTML = html;
+}
+
+// ══════════════════════════════════════
+// EDIT & DELETE
+// ══════════════════════════════════════
+function editSaleEntry(entryId){
+  const entry = salesData.find(s=>String(s.entryId)===String(entryId));
+  if(!entry){ showToast('Entry not found'); return; }
+  const overlay = document.getElementById('edit-overlay');
+  const area = document.getElementById('edit-form-area');
+  area.innerHTML = `
+    <div class="form-group"><label class="form-label">${t('amount')} (₹)</label><input type="number" id="edit-amount" value="${entry.amount}" inputmode="numeric"></div>
+    <div class="form-group"><label class="form-label">${t('description')}</label><input type="text" id="edit-desc" value="${entry.description||''}"></div>
+    <div class="form-group"><label class="form-label">${t('date')}</label><input type="date" id="edit-date" value="${entry.date}"></div>
+    <button class="btn btn-gold" onclick="submitEdit('${entryId}')">${t('save')} 💾</button>
+  `;
+  overlay.classList.add('active');
+}
+
+function closeEditOverlay(){
+  document.getElementById('edit-overlay').classList.remove('active');
+}
+
+function submitEdit(entryId){
+  const amount = document.getElementById('edit-amount').value;
+  const desc = document.getElementById('edit-desc').value;
+  const date = document.getElementById('edit-date').value;
+  openPinModal(t('enterPin'),'', async()=>{
+    fireAndForget('edit',{entryId, amount, description:desc, date, editedBy:currentUser.name});
+    const entry = salesData.find(s=>String(s.entryId)===String(entryId));
+    if(entry){
+      entry.amount = Number(amount);
+      entry.description = desc;
+      entry.date = date;
+      entry.editedBy = currentUser.name;
+      if(entry.paymentMethod==='Cash'){ entry.cashAmount=Number(amount); }
+    }
+    lsSet('sales', salesData);
+    closeEditOverlay();
+    renderHistory();
+    showToast('✓ Edited successfully');
+    setTimeout(async()=>{ await loadAllData(); renderAll(); },1500);
+  });
+}
+
+function deleteSaleEntry(entryId){
+  const entry = salesData.find(s=>String(s.entryId)===String(entryId));
+  if(!entry){ showToast('Entry not found'); return; }
+  const detail = `${formatINR(entry.amount)} — ${entry.paymentMethod} — ${dateDisplay(entry.date)}`;
+  openPinModal(t('deleteConfirm'), detail, async()=>{
+    try{
+      fireAndForget('delete',{entryId:String(entryId), deletedBy:currentUser.name});
+      salesData = salesData.filter(s=>String(s.entryId)!==String(entryId));
+      // Remove linked party txn
+      if((entry.paymentMethod==='UPI'||entry.paymentMethod==='Cash+UPI') && entry.party && entry.party!=='Other'){
+        partyTxnData = partyTxnData.filter(t=>!(String(t.entryId)===String(entryId) && t.source==='Via Sale'));
+      }
+      lsSet('sales', salesData);
+      lsSet('partyTxn', partyTxnData);
+      renderHistory();
+      renderParties();
+      showToast('✓ Deleted successfully');
+      setTimeout(async()=>{ await loadAllData(); renderAll(); },1500);
+    }catch(e){
+      showToast('❌ Delete failed');
+    }
+  });
+}
+
+function editPartyTxn(entryId){
+  const tx = partyTxnData.find(t=>String(t.entryId)===String(entryId));
+  if(!tx){ showToast('Entry not found'); return; }
+  const overlay = document.getElementById('edit-overlay');
+  const area = document.getElementById('edit-form-area');
+  area.innerHTML = `
+    <div class="form-group"><label class="form-label">${t('amount')} (₹)</label><input type="number" id="edit-amount" value="${tx.amount}" inputmode="numeric"></div>
+    <div class="form-group"><label class="form-label">${t('note')}</label><input type="text" id="edit-note" value="${tx.note||''}"></div>
+    <div class="form-group"><label class="form-label">${t('date')}</label><input type="date" id="edit-date" value="${tx.date}"></div>
+    <button class="btn btn-gold" onclick="submitPtxnEdit('${entryId}')">${t('save')} 💾</button>
+  `;
+  overlay.classList.add('active');
+}
+
+function submitPtxnEdit(entryId){
+  const amount = document.getElementById('edit-amount').value;
+  const note = document.getElementById('edit-note').value;
+  const date = document.getElementById('edit-date').value;
+  openPinModal(t('enterPin'),'', async()=>{
+    fireAndForget('editPartyTransaction',{entryId, amount, note, date, editedBy:currentUser.name});
+    const tx = partyTxnData.find(t=>String(t.entryId)===String(entryId));
+    if(tx){ tx.amount=Number(amount); tx.note=note; tx.date=date; tx.editedBy=currentUser.name; }
+    lsSet('partyTxn', partyTxnData);
+    closeEditOverlay();
+    renderPartyDetail();
+    showToast('✓ Edited successfully');
+    setTimeout(async()=>{ await loadAllData(); renderPartyDetail(); },1500);
+  });
+}
+
+function deletePartyTxn(entryId){
+  const tx = partyTxnData.find(t=>String(t.entryId)===String(entryId));
+  if(!tx){ showToast('Entry not found'); return; }
+  const detail = `${formatINR(tx.amount)} — ${tx.type} — ${dateDisplay(tx.date)}`;
+  openPinModal(t('deleteConfirm'), detail, async()=>{
+    fireAndForget('deletePartyTransaction',{entryId:String(entryId), deletedBy:currentUser.name});
+    partyTxnData = partyTxnData.filter(t=>String(t.entryId)!==String(entryId));
+    lsSet('partyTxn', partyTxnData);
+    renderPartyDetail();
+    showToast('✓ Deleted successfully');
+    setTimeout(async()=>{ await loadAllData(); renderPartyDetail(); },1500);
+  });
+}
+
+// ══════════════════════════════════════
+// PIN MODAL (for edit/delete confirm)
+// ══════════════════════════════════════
+function openPinModal(title, detail, callback){
+  pinModalCallback = callback;
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-detail').textContent = detail;
+  document.getElementById('modal-error').textContent = '';
+  document.querySelectorAll('.modal-pin-box').forEach(b=>{b.value='';});
+  document.getElementById('pin-modal').classList.add('active');
+  setTimeout(()=>document.getElementById('modal-pin-1').focus(),100);
+}
+
+function closePinModal(){
+  document.getElementById('pin-modal').classList.remove('active');
+  pinModalCallback = null;
+}
+
+// Auto-advance PIN boxes
+document.querySelectorAll('.modal-pin-box').forEach((box,i,all)=>{
+  box.addEventListener('input',function(){
+    if(this.value && i<3) all[i+1].focus();
+  });
+  box.addEventListener('keydown',function(e){
+    if(e.key==='Backspace' && !this.value && i>0) all[i-1].focus();
+  });
+});
+
+async function confirmPinModal(){
+  const pin = Array.from(document.querySelectorAll('.modal-pin-box')).map(b=>b.value).join('');
+  if(pin.length!==4){
+    document.getElementById('modal-error').textContent = t('enterPin');
+    return;
+  }
+  const hash = await sha256(pin);
+  if(hash === currentUser.pinHash){
+    closePinModal();
+    if(pinModalCallback) pinModalCallback();
+  } else {
+    document.getElementById('modal-error').textContent = t('wrongPin');
+    document.querySelectorAll('.modal-pin-box').forEach(b=>{b.value='';});
+    document.getElementById('modal-pin-1').focus();
+  }
+}
+
+// ══════════════════════════════════════
+// EXPORT
+// ══════════════════════════════════════
+function exportSummary(){
+  const today = todayStr();
+  const entries = salesData.filter(s=>s.date===today);
+  const sales = entries.filter(s=>s.type==='Sale');
+  const expenses = entries.filter(s=>s.type==='Expense');
+
+  let saleTotal=0,saleCash=0,saleUpi=0,expTotal=0,expCash=0,expOnline=0;
+  sales.forEach(s=>{ saleTotal+=Number(s.amount); saleCash+=Number(s.cashAmount)||0; saleUpi+=Number(s.upiAmount)||0; });
+  expenses.forEach(s=>{ expTotal+=Number(s.amount); if(s.paymentMethod==='Cash') expCash+=Number(s.amount); else expOnline+=Number(s.amount); });
+
+  let text = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n    DAILY SUMMARY — ${dateDisplay(today)}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  text += `SALES (${t('sale')})\n──────────────\n`;
+  sales.forEach((s,i)=>{
+    let line = `${i+1}. ${formatINR(s.amount)} — ${s.paymentMethod}`;
+    if(s.party) line += ` (${s.party})`;
+    if(s.description) line += ` — ${s.description}`;
+    text += line + '\n';
+  });
+  text += `\nTotal Sales: ${formatINR(saleTotal)}\n  └ Cash: ${formatINR(saleCash)}\n  └ UPI: ${formatINR(saleUpi)}\n\n`;
+  text += `EXPENSES (${t('expense')})\n────────────────\n`;
+  expenses.forEach((s,i)=>{
+    text += `${i+1}. ${formatINR(s.amount)} — ${s.paymentMethod}${s.description?' — '+s.description:''}\n`;
+  });
+  text += `\nTotal Expense: ${formatINR(expTotal)}\n  └ Cash: ${formatINR(expCash)}\n  └ Online: ${formatINR(expOnline)}\n\n`;
+  text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nNET: ${formatINR(saleTotal-expTotal)} (Sales - Expense)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+  if(navigator.share){
+    navigator.share({text}).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(text).then(()=>showToast('Copied!')).catch(()=>{});
+  }
+}
+
+// ══════════════════════════════════════
+// SETUP / SETTINGS
+// ══════════════════════════════════════
+function toggleSetup(){
+  const el = document.getElementById('setup-screen');
+  el.classList.toggle('active');
+  document.getElementById('setup-detail-area').innerHTML = '';
+}
+
+function toggleLanguage(){
+  lang = lang==='en'?'hi':'en';
+  lsSet('lang', lang);
+  updateI18n();
+  document.getElementById('lang-value').textContent = lang==='en'?'English':'हिंदी';
+}
+
+async function showLogs(){
+  const area = document.getElementById('setup-detail-area');
+  area.innerHTML = '<div class="loading"><div class="spinner"></div><br>Loading...</div>';
+  try{
+    const logs = await jsonpFetch('readLogs');
+    if(!logs.length){
+      area.innerHTML = `<div class="empty-state">${t('noEntries')}</div>`;
+      return;
+    }
+    area.innerHTML = logs.slice(0,100).map(l=>
+      `<div class="log-item"><div>${l.user} — ${l.action}</div><div style="color:var(--muted);font-size:12px">${l.details||''}</div><div class="log-time">${l.timestamp}</div></div>`
+    ).join('');
+  }catch(e){
+    area.innerHTML = '<div style="color:var(--red);padding:20px">Failed to load logs</div>';
+  }
+}
+
+function showInstructions(){
+  const area = document.getElementById('setup-detail-area');
+  area.innerHTML = `<div class="card" style="font-size:14px;line-height:1.8;white-space:pre-wrap">📖 ऐप कैसे इस्तेमाल करें
+
+🔹 बिक्री कैसे जोड़ें:
+1. नीचे "बिक्री" टैब पर जाएं
+2. "बिक्री" बटन चुनें (खर्चा नहीं)
+3. राशि डालें (₹)
+4. भुगतान का तरीका चुनें — नकद / UPI / नकद+UPI
+5. अगर UPI चुना तो पार्टी चुनें
+6. विवरण लिखें (वैकल्पिक)
+7. तारीख जांचें (आज अपने आप भर जाती है)
+8. "सेव करें" दबाएं
+
+🔹 खर्चा कैसे जोड़ें:
+1. "बिक्री" टैब पर जाएं
+2. "खर्चा" बटन चुनें
+3. राशि, तरीका (नकद/ऑनलाइन), विवरण डालें
+4. "सेव करें" दबाएं
+
+🔹 पार्टी कैसे जोड़ें:
+1. "पार्टियां" टैब पर जाएं
+2. नाम लिखें और "जोड़ें" दबाएं
+
+🔹 पार्टी से पैसा आया:
+1. पार्टी के नाम पर टैप करें
+2. "पैसा आया" दबाएं
+3. राशि और तरीका भरें → "सेव करें"
+
+🔹 पार्टी को पैसा गया:
+1. पार्टी के नाम पर टैप करें
+2. "पैसा गया" दबाएं
+3. राशि भरें → "सेव करें"
+
+🔹 इतिहास देखें:
+1. "इतिहास" टैब पर जाएं
+2. आज और कल की एंट्री दिखेंगी
+
+🔹 एंट्री बदलें / हटाएं:
+✏️ बदलने के लिए — पिन डालें
+✕ हटाने के लिए — पिन डालें
+⚠️ UPI एंट्री बदल नहीं सकते — हटाएं और नई डालें
+
+🔹 सारांश डाउनलोड:
+इतिहास में "📄 आज का सारांश" दबाएं</div>`;
+}
+
+// ══════════════════════════════════════
+// STARTUP
+// ══════════════════════════════════════
+(function(){
+  // Check if session exists
+  const session = sessionStorage.getItem('sl_user');
+  if(session){
+    try{
+      currentUser = JSON.parse(session);
+      document.getElementById('pin-screen').classList.remove('active');
+      document.getElementById('app').style.display = 'flex';
+      document.getElementById('user-badge').textContent = currentUser.name;
+      initApp();
+      return;
+    }catch(e){}
+  }
+  initPinSystem();
+})();
+</script>
+</body>
+</html>
