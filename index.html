@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="background:#0B1120;color:#F1EDE3;font-family:sans-serif;padding:24px">
+<h2>Shop Ledger — Full Debug Test</h2>
+
+<div id="test1" style="padding:12px;background:#111827;border-radius:12px;margin:12px 0">Test 1: Protocol — checking...</div>
+<div id="test2" style="padding:12px;background:#111827;border-radius:12px;margin:12px 0">Test 2: SHA-256 — checking...</div>
+<div id="test3" style="padding:12px;background:#111827;border-radius:12px;margin:12px 0">Test 3: JSONP — checking...</div>
+<div id="test4" style="padding:12px;background:#111827;border-radius:12px;margin:12px 0">Test 4: Fetch — checking...</div>
+
+<script>
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5JAouzBl6-BNMtTft7psydGu2Wllah6UcIWXD_hcI7sPAJCN4sdvoXgwcxYhpJG2K/exec';
+
+// Test 1: Protocol
+document.getElementById('test1').innerHTML = 'Test 1: Protocol = <b style="color:#D4A017">' + window.location.protocol + '//' + window.location.host + '</b>';
+
+// Test 2: SHA-256
+(async function(){
+  var el = document.getElementById('test2');
+  try {
+    // Try crypto.subtle
+    if (window.crypto && window.crypto.subtle) {
+      var buf = new TextEncoder().encode('8989');
+      var hash = await crypto.subtle.digest('SHA-256', buf);
+      var hex = Array.from(new Uint8Array(hash)).map(function(b){return b.toString(16).padStart(2,'0')}).join('');
+      var expected = '03aaef0fd45d47ee37afee60b41f0a80010f58f95d3d34e9b7dc253c8558bf2a';
+      if (hex === expected) {
+        el.innerHTML = 'Test 2: SHA-256 <b style="color:#22c55e">✅ PASS</b> — crypto.subtle works<br><span style="font-size:11px;color:#8B8979">Hash: ' + hex + '</span>';
+      } else {
+        el.innerHTML = 'Test 2: SHA-256 <b style="color:#ef4444">❌ WRONG HASH</b><br>' + hex;
+      }
+    } else {
+      el.innerHTML = 'Test 2: SHA-256 <b style="color:#ef4444">❌ crypto.subtle not available</b> — will use fallback';
+    }
+  } catch(e) {
+    el.innerHTML = 'Test 2: SHA-256 <b style="color:#ef4444">❌ ERROR: ' + e.message + '</b>';
+  }
+})();
+
+// Test 3: JSONP
+var jsonpDone = false;
+window.debugCallback = function(data) {
+  jsonpDone = true;
+  document.getElementById('test3').innerHTML = 'Test 3: JSONP <b style="color:#22c55e">✅ PASS</b><br><pre style="font-size:11px;color:#8B8979;word-break:break-all">' + JSON.stringify(data) + '</pre>';
+};
+var s = document.createElement('script');
+s.src = SCRIPT_URL + '?mode=readConfig&callback=debugCallback';
+s.onerror = function(e) {
+  document.getElementById('test3').innerHTML = 'Test 3: JSONP <b style="color:#ef4444">❌ Script onerror fired</b><br><span style="color:#8B8979">The script tag was blocked or failed to load</span>';
+};
+document.body.appendChild(s);
+setTimeout(function(){
+  if (!jsonpDone) {
+    document.getElementById('test3').innerHTML += '<br><b style="color:#D4A017">⏳ No response after 15s</b>';
+  }
+}, 15000);
+
+// Test 4: Fetch (no-cors)
+(async function(){
+  var el = document.getElementById('test4');
+  try {
+    var resp = await fetch(SCRIPT_URL + '?mode=readConfig', {mode:'cors'});
+    var text = await resp.text();
+    el.innerHTML = 'Test 4: Fetch (cors) <b style="color:#22c55e">✅ PASS</b><br><span style="font-size:11px;color:#8B8979">' + text.substring(0,200) + '</span>';
+  } catch(e) {
+    el.innerHTML = 'Test 4: Fetch (cors) <b style="color:#D4A017">⚠️ ' + e.message + '</b> — this is expected, JSONP is the primary method';
+  }
+})();
+</script>
+</body>
+</html>
