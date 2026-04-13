@@ -1,0 +1,2353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Shop Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════ */
+/* CSS RESET & VARIABLES                 */
+/* ══════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#F8FAF9;--card:#ffffff;--card-alt:#F0F2F1;
+  --gold:#059669;--gold-soft:rgba(5,150,105,.1);--gold-border:rgba(5,150,105,.3);
+  --text:#1A1D26;--muted:#6B7280;--border:rgba(0,0,0,.08);
+  --input-bg:#ffffff;--green:#059669;--red:#DC2626;--blue:#3b82f6;--purple:#a855f7;
+  --font:'DM Sans',sans-serif;--mono:'DM Sans',sans-serif;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums}
+input,select,textarea,button{font-family:var(--font);font-size:16px;color:var(--text);outline:none;border:none;background:none}
+input[type="number"],input[type="text"],input[type="date"],select,textarea{
+  width:100%;padding:14px 16px;background:var(--input-bg);border:1px solid var(--border);border-radius:12px;
+  font-size:16px;color:var(--text);-webkit-appearance:none;appearance:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--gold-border);box-shadow:0 0 0 3px var(--gold-soft)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:40px}
+::-webkit-calendar-picker-indicator{filter:none}
+
+/* ══════════════════════════════════════ */
+/* LAYOUT                                */
+/* ══════════════════════════════════════ */
+#app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto;position:relative}
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--bg);z-index:100;min-height:56px;flex-shrink:0}
+.header-title{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px}
+.header-logo{font-size:20px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#059669,#047857);border-radius:10px}
+.header-right{display:flex;gap:12px;align-items:center}
+.gear-btn{font-size:24px;cursor:pointer;padding:6px;border-radius:8px;transition:.2s}
+.gear-btn:active{background:var(--card)}
+.back-btn{font-size:22px;cursor:pointer;padding:6px 10px 6px 0;display:none}
+.content{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 16px 16px;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.bottom-tabs{display:flex;background:var(--card);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:var(--safe-bottom);z-index:100}
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0 8px;cursor:pointer;transition:.2s;border:none;background:none;font-size:14px;color:var(--muted)}
+.tab-btn.active{color:var(--gold)}
+.tab-btn .tab-icon{font-size:25px;line-height:1}
+.tab-btn .tab-label{font-weight:600}
+
+/* ══════════════════════════════════════ */
+/* SCREENS                               */
+/* ══════════════════════════════════════ */
+.screen{display:none}
+.screen.active{display:block}
+
+/* ══════════════════════════════════════ */
+/* PIN SCREEN                            */
+/* ══════════════════════════════════════ */
+#pin-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+#pin-screen.active{display:flex}
+.pin-title{font-size:22px;font-weight:700;margin-bottom:8px;text-align:center}
+.pin-icon{font-size:56px;width:80px;height:80px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#059669,#047857);border-radius:20px;margin-bottom:20px}
+.pin-subtitle{font-size:14px;color:var(--muted);margin-bottom:32px;text-align:center}
+.pin-dots{display:flex;gap:14px;margin-bottom:32px}
+.pin-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--gold-border);transition:.2s}
+.pin-dot.filled{background:var(--gold);border-color:var(--gold)}
+.pin-dot.error{border-color:var(--red);background:var(--red)}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:280px;width:100%}
+.pin-key{height:64px;border-radius:16px;background:var(--card);font-size:24px;font-family:var(--mono);font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;border:1px solid var(--border);user-select:none;-webkit-user-select:none}
+.pin-key:active{background:var(--gold-soft);border-color:var(--gold-border);transform:scale(.95)}
+.pin-key.backspace{font-size:20px}
+.pin-key.submit{font-size:16px;font-family:var(--font);background:var(--gold-soft);border-color:var(--gold-border);color:var(--gold);font-weight:700}
+.pin-error{color:var(--red);font-size:14px;margin-top:16px;min-height:20px;text-align:center}
+.pin-name-input{margin-bottom:24px;text-align:center;font-size:20px;max-width:280px;padding:16px}
+.pin-name-btn{padding:14px 40px;background:var(--gold);color:#fff;font-weight:700;border-radius:12px;font-size:16px;cursor:pointer;margin-top:8px}
+.pin-name-btn:disabled{background:#D1D5DB;color:#9CA3AF;cursor:not-allowed}
+
+/* ══════════════════════════════════════ */
+/* CARDS & COMPONENTS                    */
+/* ══════════════════════════════════════ */
+.card{background:var(--card);border-radius:16px;padding:18px;margin-bottom:14px;border:1px solid var(--border)}
+.card-alt{background:var(--card-alt)}
+.section-title{font-size:15px;font-weight:600;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.amount{font-family:var(--mono);font-weight:700;font-size:20px}
+.amount-sm{font-family:var(--mono);font-weight:700;font-size:16px}
+.rupee{font-family:var(--mono)}
+.green{color:var(--green)}.red{color:var(--red)}.gold{color:var(--gold)}.blue{color:var(--blue)}
+
+/* Toggle chips */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{padding:10px 18px;border-radius:10px;border:1px solid var(--border);cursor:pointer;font-weight:600;font-size:14px;transition:.2s;user-select:none;-webkit-user-select:none}
+.chip.active{background:var(--gold-soft);border-color:var(--gold);color:var(--gold)}
+.chip:active{transform:scale(.96)}
+
+/* Sale/Expense toggle */
+.type-toggle{display:flex;gap:0;margin-bottom:18px;border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+.type-toggle-btn{flex:1;padding:12px;text-align:center;font-weight:700;font-size:15px;cursor:pointer;transition:.2s;background:var(--card)}
+.type-toggle-btn.active-sale{background:rgba(5,150,105,.1);color:var(--green);border-bottom:3px solid var(--green)}
+.type-toggle-btn.active-expense{background:rgba(220,38,38,.1);color:var(--red);border-bottom:3px solid var(--red)}
+
+/* Form */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.form-row{display:flex;gap:10px}
+.form-row>*{flex:1}
+
+/* Buttons */
+.btn{padding:14px 24px;border-radius:12px;font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s;min-height:50px;border:none;width:100%;user-select:none;-webkit-user-select:none}
+.btn:active{transform:scale(.97)}
+.btn-gold{background:linear-gradient(135deg,#059669,#047857);color:#fff}
+.btn-gold:disabled{background:#D1D5DB;color:#9CA3AF;cursor:not-allowed;transform:none}
+.btn-outline{border:1px solid var(--border);color:var(--text);background:var(--card)}
+.btn-green{background:rgba(5,150,105,.1);color:var(--green);border:1px solid rgba(5,150,105,.3)}
+.btn-red{background:rgba(220,38,38,.1);color:var(--red);border:1px solid rgba(220,38,38,.3)}
+.btn-sm{padding:8px 16px;font-size:13px;min-height:38px;border-radius:10px}
+.sync-status{font-size:13px;text-align:center;margin-top:8px;min-height:20px}
+
+/* Party list */
+.party-item{display:flex;justify-content:space-between;align-items:center;padding:16px;cursor:pointer;border-bottom:1px solid var(--border);transition:.15s}
+.party-item:active{background:var(--card-alt)}
+.party-name{font-weight:600;font-size:16px}
+.party-balance{font-family:var(--mono);font-weight:700;font-size:16px}
+.party-arrow{color:var(--muted);font-size:18px;margin-left:8px}
+
+/* Transaction items */
+.txn-item{display:flex;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+.txn-icon{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0;margin-top:1px}
+.txn-icon.green{background:rgba(5,150,105,.1)}
+.txn-icon.red{background:rgba(220,38,38,.1)}
+.txn-body{flex:1;min-width:0}
+.txn-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.txn-amount{font-family:var(--mono);font-weight:700;font-size:16px;white-space:nowrap}
+.txn-method{font-size:12px;color:var(--muted);font-weight:500}
+.txn-desc{font-size:13px;color:var(--text);margin-top:2px;font-style:italic;opacity:0.6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.txn-meta{font-size:11px;color:var(--muted);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap}
+.txn-tag{font-size:10px;padding:2px 8px;border-radius:6px;background:var(--gold-soft);color:var(--gold);font-weight:600}
+.txn-actions{display:flex;gap:4px;flex-shrink:0;align-items:center}
+.txn-action-btn{width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:12px;background:var(--card-alt);border:1px solid var(--border);transition:.15s;display:flex;align-items:center;justify-content:center}
+.txn-action-btn:active{transform:scale(.9)}
+
+/* Date separator */
+.date-sep{text-align:center;padding:14px 0 8px;font-size:12px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:12px;letter-spacing:0.5px;text-transform:uppercase}
+.date-sep::before,.date-sep::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* Summary card */
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.summary-item{text-align:center;padding:14px 12px;border-radius:12px;background:var(--card-alt)}
+.summary-label{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px}
+.summary-value{font-family:var(--mono);font-weight:700;font-size:20px}
+.summary-sub{font-size:13px;color:var(--muted);margin-top:4px}
+
+/* Voice input */
+.voice-input-row{display:flex;gap:6px;align-items:flex-start}
+.voice-input-wrap{flex:1;position:relative}
+.voice-input-wrap textarea{width:100%;padding:12px 36px 12px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;font-family:var(--font);outline:none;resize:none;overflow:hidden;min-height:44px;line-height:1.4;background:var(--card)}
+.voice-input-wrap textarea:focus{border-color:var(--green)}
+.voice-clear-btn{position:absolute;right:8px;top:12px;width:22px;height:22px;border-radius:50%;background:var(--border);border:none;cursor:pointer;font-size:12px;color:var(--muted);display:none;align-items:center;justify-content:center;font-weight:700}
+.voice-clear-btn.show{display:flex}
+.voice-clear-btn:active{background:#D1D5DB}
+.voice-mic-btn{width:44px;height:44px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:.15s;font-size:18px}
+.voice-mic-btn:active{transform:scale(.93)}
+.voice-mic-btn.listening{border-color:var(--red);background:#FEF2F2;animation:mic-pulse 1.5s infinite}
+@keyframes mic-pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* PIN Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:5000;align-items:center;justify-content:center;padding:24px}
+.modal-overlay.active{display:flex}
+.modal-card{background:var(--card);border-radius:20px;padding:28px 24px;max-width:340px;width:100%;text-align:center;border:1px solid var(--border)}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:6px}
+.modal-detail{font-size:14px;color:var(--muted);margin-bottom:20px}
+.modal-pin-input{display:flex;gap:10px;justify-content:center;margin-bottom:16px}
+.modal-pin-box{width:48px;height:52px;border-radius:12px;background:var(--input-bg);border:1px solid var(--border);font-family:var(--mono);font-size:24px;font-weight:700;text-align:center}
+.modal-pin-box:focus{border-color:var(--gold)}
+.modal-btns{display:flex;gap:10px;margin-top:8px}
+.modal-btns .btn{flex:1}
+.modal-error{color:var(--red);font-size:13px;margin-top:8px;min-height:18px}
+
+/* Setup overlay */
+#setup-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:4000;flex-direction:column}
+#setup-screen.active{display:flex}
+.setup-header{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border)}
+.setup-close{font-size:24px;cursor:pointer;padding:4px}
+.setup-content{flex:1;overflow-y:auto;padding:16px}
+.setup-item{display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid var(--border);cursor:pointer}
+.setup-item-label{font-weight:600;font-size:16px}
+.setup-item-value{color:var(--gold);font-weight:600}
+
+/* Log items */
+.log-item{padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+.log-time{color:var(--muted);font-size:11px}
+
+/* Edit form overlay */
+#edit-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:3000;flex-direction:column}
+#edit-overlay.active{display:flex}
+
+/* Toast */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--card);color:var(--text);padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:8000;border:1px solid var(--gold-border);opacity:0;transition:.3s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Loading */
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+.spinner{display:inline-block;width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Empty state */
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state .emoji{font-size:40px;margin-bottom:12px}
+
+/* Add party inline */
+.add-party-row{display:flex;gap:8px;margin-bottom:16px}
+.add-party-row input{flex:1}
+.add-party-row .btn{width:auto;padding:12px 20px}
+
+/* Pending sync indicator */
+.pending-badge{display:inline-block;font-size:11px;color:var(--gold);margin-left:6px}
+
+/* Touch feedback for all interactive elements */
+.tapfx:active,.btn:active,.chip:active,.party-item:active,.tab-btn:active,.txn-action-btn:active,.setup-item:active{
+  transform:scale(.95)!important;opacity:.85;transition:transform .1s,opacity .1s;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ -->
+<!-- PIN SCREEN                            -->
+<!-- ══════════════════════════════════════ -->
+<div id="pin-screen" class="active">
+  <div class="pin-icon">💰</div>
+  <div class="pin-title" id="pin-title">Shop Ledger</div>
+  <div class="pin-subtitle" id="pin-subtitle">Enter PIN to continue</div>
+  <div class="pin-dots" id="pin-dots"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
+  <div id="pin-name-section" style="display:none">
+    <input type="text" class="pin-name-input" id="pin-name-input" placeholder="Enter your name" maxlength="20">
+    <button class="pin-name-btn" id="pin-name-btn" disabled>Continue</button>
+  </div>
+  <div class="pin-keypad" id="pin-keypad">
+    <div class="pin-key" data-key="1">1</div><div class="pin-key" data-key="2">2</div><div class="pin-key" data-key="3">3</div>
+    <div class="pin-key" data-key="4">4</div><div class="pin-key" data-key="5">5</div><div class="pin-key" data-key="6">6</div>
+    <div class="pin-key" data-key="7">7</div><div class="pin-key" data-key="8">8</div><div class="pin-key" data-key="9">9</div>
+    <div class="pin-key backspace" data-key="back">✕</div><div class="pin-key" data-key="0">0</div><div class="pin-key submit" data-key="submit">OK</div>
+  </div>
+  <div class="pin-error" id="pin-error"></div>
+  <div id="pin-register-link" style="display:none;margin-top:24px">
+    <button style="background:none;border:1px solid var(--border);color:var(--muted);padding:12px 24px;border-radius:12px;font-size:14px;font-family:var(--font);cursor:pointer" onclick="startRegistration()">New user? Register here</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- MAIN APP                              -->
+<!-- ══════════════════════════════════════ -->
+<div id="app" style="display:none">
+  <!-- Header -->
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="back-btn" id="back-btn" onclick="goBack()">←</span>
+      <div class="header-title"><span class="header-logo">💰</span><span data-i18n="appTitle">Shop Ledger</span></div>
+    </div>
+    <div class="header-right">
+      <span id="user-badge" style="font-size:13px;color:var(--gold);font-weight:600"></span>
+      <span class="gear-btn" id="refresh-btn" onclick="manualRefresh()" title="Refresh">↻</span>
+      <span class="gear-btn" onclick="toggleSetup()">⚙️</span>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content" id="content">
+    <!-- SALES TAB -->
+    <div class="screen active" id="screen-sales">
+      <div class="type-toggle">
+        <div class="type-toggle-btn active-sale" id="toggle-sale" onclick="setEntryType('sale')"><span style="color:var(--green);font-weight:700">+</span> <span data-i18n="addSale">Add Sale</span></div>
+        <div class="type-toggle-btn" id="toggle-expense" onclick="setEntryType('expense')"><span style="color:var(--red);font-weight:700">−</span> <span data-i18n="addExpense">Add Expense</span></div>
+      </div>
+      <div id="sale-form">
+        <div class="form-group">
+          <label class="form-label" id="sale-amount-label"><span id="sale-amount-text">Sale Amount</span> (₹) <span style="color:var(--red)">*</span></label>
+          <input type="number" id="sale-amount" placeholder="0" inputmode="numeric" min="1">
+        </div>
+        <div class="form-group" id="sale-method-group">
+          <label class="form-label"><span data-i18n="salePaymentMethod">Payment Method</span> <span style="color:var(--red)">*</span></label>
+          <div class="chips" id="sale-method-chips">
+            <div class="chip" data-method="Cash" onclick="setSaleMethod('Cash')"><span data-i18n="cash">Cash</span></div>
+            <div class="chip" data-method="UPI" onclick="setSaleMethod('UPI')">UPI</div>
+            <div class="chip" data-method="Cash+UPI" onclick="setSaleMethod('Cash+UPI')"><span data-i18n="cash">Cash</span>+UPI</div>
+          </div>
+        </div>
+        <div class="form-group" id="sale-party-group" style="display:none">
+          <label class="form-label"><span data-i18n="onlinePaymentTo">Online Payment To (Party)</span> <span style="color:var(--red)">*</span></label>
+          <select id="sale-party"><option value="">-- Select --</option></select>
+        </div>
+        <div class="form-group" id="sale-split-group" style="display:none">
+          <div class="form-row">
+            <div><label class="form-label"><span data-i18n="cash">Cash</span> (₹)</label><input type="number" id="sale-cash-amount" placeholder="0" inputmode="numeric"></div>
+            <div><label class="form-label">UPI (₹)</label><input type="number" id="sale-upi-amount" placeholder="0" inputmode="numeric"></div>
+          </div>
+          <div id="split-error" style="color:var(--red);font-size:13px;margin-top:6px;display:none"></div>
+        </div>
+        <div class="form-group" id="expense-method-group" style="display:none">
+          <label class="form-label"><span data-i18n="paymentMethod">Payment Method</span> <span style="color:var(--red)">*</span></label>
+          <div class="chips" id="expense-method-chips">
+            <div class="chip" data-method="Cash" onclick="setExpenseMethod('Cash')"><span data-i18n="cash">Cash</span></div>
+            <div class="chip" data-method="Online" onclick="setExpenseMethod('Online')"><span data-i18n="online">Online</span></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label"><span data-i18n="description">Description</span></label>
+          <div class="voice-input-row">
+            <div class="voice-input-wrap">
+              <textarea id="sale-desc" rows="1" placeholder="" oninput="autoGrow(this);voiceClear('sale-desc')"></textarea>
+              <button class="voice-clear-btn" id="sale-desc-clear" onclick="clearVoiceInput('sale-desc')">✕</button>
+            </div>
+            <div class="voice-mic-btn" onclick="toggleMic('sale-desc')">🎤</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label"><span data-i18n="date">Date</span></label>
+          <input type="date" id="sale-date">
+        </div>
+        <button class="btn btn-gold" id="sale-save-btn" onclick="saveSaleEntry()" disabled>
+          <span data-i18n="save">Save</span> 💾
+        </button>
+        <div class="sync-status" id="sale-sync"></div>
+      </div>
+    </div>
+
+    <!-- PARTIES TAB -->
+    <div class="screen" id="screen-parties">
+      <div id="parties-list-view">
+        <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+          <input type="text" id="party-search" placeholder="🔍 Search party..." oninput="filterParties()" style="flex:1">
+          <button class="btn btn-gold btn-sm" style="width:auto;white-space:nowrap" onclick="openAddPartyModal()">➕ <span data-i18n="addParty">Add Party</span></button>
+        </div>
+        <div id="parties-list"></div>
+      </div>
+      <div id="party-detail-view" style="display:none">
+        <div class="card" style="text-align:center">
+          <div style="font-size:20px;font-weight:700;margin-bottom:4px" id="party-detail-name"></div>
+          <div style="font-size:14px;color:var(--muted);margin-bottom:10px" data-i18n="balance">Balance</div>
+          <div class="amount" id="party-detail-balance"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:16px">
+          <button class="btn btn-red btn-sm tapfx" style="flex:1" onclick="showPartyTxnForm('Credit')"><span style="font-weight:700;font-size:16px">−</span> <span data-i18n="addCredit">Credit Given</span></button>
+          <button class="btn btn-green btn-sm tapfx" style="flex:1" onclick="showPartyTxnForm('Debit')"><span style="font-weight:700;font-size:16px">+</span> <span data-i18n="addDebit">Payment Received</span></button>
+        </div>
+        <div id="party-txn-form" style="display:none" class="card">
+          <div class="form-group">
+            <label class="form-label"><span data-i18n="amount">Amount</span> (₹) <span style="color:var(--red)">*</span></label>
+            <input type="number" id="ptxn-amount" placeholder="0" inputmode="numeric">
+          </div>
+          <div class="form-group">
+            <label class="form-label"><span data-i18n="paymentMethod">Method</span> <span style="color:var(--red)">*</span></label>
+            <div class="chips" id="ptxn-method-chips">
+              <div class="chip" data-method="Cash" onclick="setPtxnMethod('Cash')"><span data-i18n="cash">Cash</span></div>
+              <div class="chip" data-method="UPI" onclick="setPtxnMethod('UPI')">UPI</div>
+            </div>
+          </div>
+          <div class="form-group" id="ptxn-desc-group">
+            <label class="form-label"><span data-i18n="description">Description</span></label>
+            <div class="voice-input-row">
+              <div class="voice-input-wrap">
+                <textarea id="ptxn-desc" rows="1" placeholder="" oninput="autoGrow(this);voiceClear('ptxn-desc')"></textarea>
+                <button class="voice-clear-btn" id="ptxn-desc-clear" onclick="clearVoiceInput('ptxn-desc')">✕</button>
+              </div>
+              <div class="voice-mic-btn" onclick="toggleMic('ptxn-desc')">🎤</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label"><span data-i18n="note">Note</span></label>
+            <div class="voice-input-row">
+              <div class="voice-input-wrap">
+                <textarea id="ptxn-note" rows="1" placeholder="" oninput="autoGrow(this);voiceClear('ptxn-note')"></textarea>
+                <button class="voice-clear-btn" id="ptxn-note-clear" onclick="clearVoiceInput('ptxn-note')">✕</button>
+              </div>
+              <div class="voice-mic-btn" onclick="toggleMic('ptxn-note')">🎤</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label"><span data-i18n="date">Date</span></label>
+            <input type="date" id="ptxn-date">
+          </div>
+          <button class="btn btn-gold" onclick="savePartyTxn()"><span data-i18n="save">Save</span> 💾</button>
+          <div class="sync-status" id="ptxn-sync"></div>
+        </div>
+        <div class="section-title" style="margin-top:16px"><span data-i18n="records">Records</span></div>
+        <div id="party-txn-list"></div>
+        <div style="margin-top:16px">
+          <button class="btn btn-red btn-sm" onclick="attemptDeleteParty()">🗑️ <span data-i18n="deleteParty">Delete Party</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div class="screen" id="screen-history">
+      <div class="card" id="summary-card" style="padding:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div class="section-title" id="summary-title" style="margin:0">Today's Summary</div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:2px" data-i18n="viewDate">View Date</div>
+            <input type="date" id="history-date" onchange="onHistoryDateChange()" style="width:auto;padding:8px 10px;font-size:14px;border-radius:8px;font-weight:600">
+          </div>
+        </div>
+        <div class="summary-grid" style="gap:8px;margin-bottom:10px">
+          <div class="summary-item" style="padding:10px 8px"><div class="summary-label"><span style="color:var(--green);font-weight:700">+</span> <span data-i18n="totalSale">Total Sale</span></div><div class="summary-value green" id="sum-sale">₹0</div><div class="summary-sub" id="sum-sale-detail"></div></div>
+          <div class="summary-item" style="padding:10px 8px"><div class="summary-label"><span style="color:var(--red);font-weight:700">−</span> <span data-i18n="totalExpense">Total Expense</span></div><div class="summary-value red" id="sum-expense">₹0</div><div class="summary-sub" id="sum-expense-detail"></div></div>
+        </div>
+        <div style="text-align:center;margin-bottom:8px">
+          <span style="font-size:13px;color:var(--muted)" data-i18n="net">Net</span>:
+          <span class="amount-sm" id="sum-net">₹0</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-outline btn-sm" style="flex:1;padding:8px;min-height:36px;font-size:13px;color:#128C7E;border-color:#128C7E;font-weight:700" onclick="exportSummary('whatsapp')">WhatsApp</button>
+          <button class="btn btn-outline btn-sm" style="flex:1;padding:8px;min-height:36px;font-size:13px" onclick="exportSummary('pdf')">📑 PDF</button>
+        </div>
+      </div>
+      <div id="history-syncing" style="display:none;text-align:center;padding:8px;font-size:13px;color:var(--gold);font-weight:600">⟳ Syncing...</div>
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+  <!-- Bottom Tabs -->
+  <div class="bottom-tabs">
+    <div class="tab-btn active" onclick="switchTab('sales')">
+      <span class="tab-icon"><svg width="25" height="25" viewBox="0 0 25 25"><circle cx="12.5" cy="12.5" r="11" fill="currentColor" opacity="0.15" stroke="currentColor" stroke-width="1.5"/><text x="12.5" y="17" text-anchor="middle" fill="currentColor" font-size="13" font-weight="700" font-family="DM Sans,sans-serif">₹</text></svg></span>
+      <span class="tab-label" data-i18n="sales">Sales</span>
+    </div>
+    <div class="tab-btn" onclick="switchTab('parties')">
+      <span class="tab-icon"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><circle cx="16" cy="8" r="3.5"/><path d="M2 20c0-3.3 2.7-6 6-6h2"/><path d="M13 20c0-3.3 2-6 4-6s4 2.7 4 6"/></svg></span>
+      <span class="tab-label" data-i18n="parties">Parties</span>
+    </div>
+    <div class="tab-btn" onclick="switchTab('history')">
+      <span class="tab-icon"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2h6v3H9z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="13" y2="14"/></svg></span>
+      <span class="tab-label" data-i18n="records">Records</span>
+    </div>
+  </div>
+</div>
+
+<!-- PIN Modal (for edit/delete confirmation) -->
+<div class="modal-overlay" id="pin-modal">
+  <div class="modal-card">
+    <div class="modal-title" id="modal-title" data-i18n="enterPin">Enter PIN</div>
+    <div class="modal-detail" id="modal-detail"></div>
+    <div class="pin-dots" id="modal-pin-dots" style="justify-content:center;margin-bottom:16px">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="pin-keypad modal-keypad" id="modal-keypad" style="max-width:240px;margin:0 auto;gap:10px">
+      <div class="pin-key" data-mkey="1">1</div><div class="pin-key" data-mkey="2">2</div><div class="pin-key" data-mkey="3">3</div>
+      <div class="pin-key" data-mkey="4">4</div><div class="pin-key" data-mkey="5">5</div><div class="pin-key" data-mkey="6">6</div>
+      <div class="pin-key" data-mkey="7">7</div><div class="pin-key" data-mkey="8">8</div><div class="pin-key" data-mkey="9">9</div>
+      <div class="pin-key backspace" data-mkey="back">✕</div><div class="pin-key" data-mkey="0">0</div><div class="pin-key submit" data-mkey="submit">OK</div>
+    </div>
+    <div class="modal-error" id="modal-error"></div>
+    <div style="margin-top:12px;text-align:center">
+      <button class="btn btn-outline btn-sm" style="width:auto;display:inline-block" onclick="closePinModal()"><span data-i18n="cancel">Cancel</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Setup Screen -->
+<div id="setup-screen">
+  <div class="setup-header">
+    <span class="setup-close" onclick="toggleSetup()">←</span>
+    <span style="font-size:18px;font-weight:700" data-i18n="settings">Settings</span>
+  </div>
+  <div class="setup-content">
+    <div class="setup-item" onclick="toggleLanguage()">
+      <span class="setup-item-label" data-i18n="language">Language</span>
+      <span class="setup-item-value" id="lang-value">English</span>
+    </div>
+    <div class="setup-item" onclick="showLogs()">
+      <span class="setup-item-label" data-i18n="activityLog">Activity Log</span>
+      <span class="setup-item-value">→</span>
+    </div>
+    <div class="setup-item" onclick="showInstructions()">
+      <span class="setup-item-label" data-i18n="instructions">Instructions</span>
+      <span class="setup-item-value">→</span>
+    </div>
+    <div class="setup-item" onclick="logoutUser()">
+      <span class="setup-item-label" style="color:var(--red)">Logout</span>
+      <span class="setup-item-value" style="color:var(--red)">→</span>
+    </div>
+    <div id="setup-detail-area" style="margin-top:16px"></div>
+  </div>
+  <div class="bottom-tabs" style="border-top:1px solid var(--border)">
+    <div class="tab-btn" onclick="toggleSetup();switchTab('sales')">
+      <span class="tab-icon"><svg width="25" height="25" viewBox="0 0 25 25"><circle cx="12.5" cy="12.5" r="11" fill="currentColor" opacity="0.15" stroke="currentColor" stroke-width="1.5"/><text x="12.5" y="17" text-anchor="middle" fill="currentColor" font-size="13" font-weight="700" font-family="DM Sans,sans-serif">₹</text></svg></span>
+      <span class="tab-label" data-i18n="sales">Sales</span>
+    </div>
+    <div class="tab-btn" onclick="toggleSetup();switchTab('parties')">
+      <span class="tab-icon"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><circle cx="16" cy="8" r="3.5"/><path d="M2 20c0-3.3 2.7-6 6-6h2"/><path d="M13 20c0-3.3 2-6 4-6s4 2.7 4 6"/></svg></span>
+      <span class="tab-label" data-i18n="parties">Parties</span>
+    </div>
+    <div class="tab-btn" onclick="toggleSetup();switchTab('history')">
+      <span class="tab-icon"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2h6v3H9z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="13" y2="14"/></svg></span>
+      <span class="tab-label" data-i18n="records">Records</span>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Overlay -->
+<div id="edit-overlay">
+  <div class="header" style="border-bottom:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:22px;cursor:pointer" onclick="closeEditOverlay()">←</span>
+      <span style="font-size:18px;font-weight:700" data-i18n="edit">Edit</span>
+    </div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:16px" id="edit-form-area"></div>
+</div>
+
+<!-- Add Party Modal -->
+<div class="modal-overlay" id="add-party-modal">
+  <div class="modal-card">
+    <div class="modal-title" data-i18n="addParty">Add Party</div>
+    <div class="modal-detail" style="margin-bottom:16px" data-i18n="enterPartyName">Enter party name</div>
+    <input type="text" id="add-party-name" placeholder="Party name" maxlength="30" style="margin-bottom:16px;text-align:center;font-size:18px">
+    <div class="modal-error" id="add-party-error"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline btn-sm tapfx" onclick="closeAddPartyModal()"><span data-i18n="cancel">Cancel</span></button>
+      <button class="btn btn-gold btn-sm tapfx" id="add-party-btn" onclick="addParty()">➕ <span data-i18n="add">Add</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Hidden iframe for writes -->
+<iframe id="write-iframe" style="display:none"></iframe>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════ */
+/* SHOP LEDGER — Complete JavaScript                                 */
+/* ══════════════════════════════════════════════════════════════════ */
+
+// ── CONFIG ──
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxLCY6apvCbuzi4F3k6_Bw68iwoRuVXbvHwsXQMLvjE_Sxx1fIY7welUZKS0EF6_mTX/exec';
+const LS_PREFIX = 'shopledger_';
+
+// ── STATE ──
+let currentUser = null; // {name, pinHash}
+let salesData = [];
+let partiesData = [];
+let partyTxnData = [];
+let currentTab = 'sales';
+let entryType = 'sale'; // sale or expense
+let saleMethod = '';
+let expenseMethod = '';
+let ptxnMethod = '';
+let currentParty = null; // party detail view
+let ptxnType = ''; // Credit or Debit
+let pinModalCallback = null;
+let lang = 'en';
+let navStack = [];
+let pendingSync = [];
+
+// ── i18n ──
+const T = {
+  en: {
+    appTitle:'Shop Ledger', sales:'Sales', parties:'Parties', history:'History',
+    sale:'Sale', expense:'Expense', addSale:'Add Sale', addExpense:'Add Expense', amount:'Amount', saleAmount:'Sale Amount', expenseAmount:'Expense Amount', paymentMethod:'Payment Method',
+    cash:'Cash', online:'Online', party:'Party', onlinePaymentTo:'Online Payment To (Party)', description:'Description', date:'Date', salePaymentMethod:'Payment Method',
+    save:'Save', add:'Add', cancel:'Cancel', confirm:'Confirm', delete:'Delete', edit:'Edit',
+    balance:'Balance', addCredit:'Credit Given', addDebit:'Payment Received',
+    todaySummary:"Today's Summary", totalSale:'Total Sale', totalExpense:'Total Expense',
+    net:'Net', exportSummary:"Export Today's Summary", viewDate:'View Date',
+    enterPin:'Enter PIN', wrongPin:'Wrong PIN', note:'Note',
+    today:'Today', yesterday:'Yesterday', settings:'Settings', language:'Language',
+    instructions:'Instructions', activityLog:'Activity Log', records:'Records',
+    addedBy:'Added by', editedBy:'Edited by', deleteParty:'Delete Party',
+    addParty:'Add Party', enterPartyName:'Enter party name',
+    noEntries:'No entries yet', addFirst:'Add your first entry!',
+    saved:'✓ Saved & synced', saving:'Saving...', pendingSync:'⟳ Pending sync',
+    deleteConfirm:'Delete this entry?', editNotAllowed:'Delete this and add again',
+    clearBalance:'Clear balance before deleting', duplicateParty:'Party already exists',
+    duplicatePin:'PIN already taken', masterPinTitle:'Enter Master PIN',
+    personalPinTitle:'Enter Your PIN', setPinTitle:'Set Your 4-Digit PIN',
+    enterName:'Enter Your Name', firstAccess:'Pehli baar? Bas 4-5 sec extra lagega ⏳', welcome:'Welcome back! 🙏',
+    registration:'New user setup', confirmSetPin:'Confirm your PIN',
+  },
+  hi: {
+    appTitle:'दुकान खाता', sales:'बिक्री', parties:'पार्टियां', history:'इतिहास',
+    sale:'बिक्री', expense:'खर्चा', addSale:'बिक्री जोड़ें', addExpense:'खर्चा जोड़ें', amount:'राशि', saleAmount:'बिक्री राशि', expenseAmount:'खर्चा राशि', paymentMethod:'भुगतान का तरीका',
+    cash:'नकद', online:'ऑनलाइन', party:'पार्टी', onlinePaymentTo:'ऑनलाइन पेमेंट - पार्टी', description:'विवरण', date:'तारीख', salePaymentMethod:'जमा करने का तरीका',
+    save:'सेव करें', add:'जोड़ें', cancel:'रद्द करें', confirm:'पक्का करें', delete:'हटाएं', edit:'बदलें',
+    balance:'बैलेंस', addCredit:'उधार दिया', addDebit:'वापसी आई',
+    todaySummary:'आज का सारांश', totalSale:'कुल बिक्री', totalExpense:'कुल खर्चा',
+    net:'शुद्ध', exportSummary:'आज का सारांश डाउनलोड करें', viewDate:'तारीख चुनें',
+    enterPin:'पिन डालें', wrongPin:'गलत पिन', note:'नोट',
+    today:'आज', yesterday:'कल', settings:'सेटिंग्स', language:'भाषा',
+    instructions:'निर्देश', activityLog:'गतिविधि लॉग', records:'लेन-देन',
+    addedBy:'जोड़ा -', editedBy:'बदला -', deleteParty:'पार्टी हटाएं',
+    addParty:'पार्टी जोड़ें', enterPartyName:'पार्टी का नाम लिखें',
+    noEntries:'कोई एंट्री नहीं', addFirst:'पहली एंट्री जोड़ें!',
+    saved:'✓ सेव हो गया', saving:'सेव हो रहा है...', pendingSync:'⟳ सिंक बाकी',
+    deleteConfirm:'यह एंट्री हटाएं?', editNotAllowed:'पहले हटाएं, फिर नई डालें',
+    clearBalance:'पहले बैलेंस क्लियर करें', duplicateParty:'पार्टी पहले से है',
+    duplicatePin:'यह पिन पहले से है', masterPinTitle:'मास्टर पिन डालें',
+    personalPinTitle:'अपना पिन डालें', setPinTitle:'4 अंक का पिन सेट करें',
+    enterName:'अपना नाम लिखें', firstAccess:'पहली बार? बस 4-5 सेकंड लगेगा ⏳', welcome:'वापस स्वागत है! 🙏',
+    registration:'नए उपयोगकर्ता', confirmSetPin:'पिन की पुष्टि करें',
+  }
+};
+function t(key){ return (T[lang] && T[lang][key]) || T.en[key] || key; }
+function updateI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.getElementById('lang-value').textContent = lang==='en'?'English':'हिंदी';
+}
+
+// ── UTILS ──
+// Global touch feedback — vibrate on any button/chip/interactive tap
+document.addEventListener('click', function(e){
+  const el = e.target.closest('.btn, .chip, .party-item, .tab-btn, .txn-action-btn, .setup-item, .pin-key, .tapfx');
+  if(el && navigator.vibrate) navigator.vibrate(25);
+}, true);
+
+function formatINR(n){
+  if(n===undefined||n===null||isNaN(n)) return '₹0';
+  n = Math.round(Number(n));
+  const neg = n<0; if(neg) n=-n;
+  let s=n.toString(), last3=s.slice(-3), rest=s.slice(0,-3);
+  if(rest) rest=rest.replace(/\B(?=(\d{2})+(?!\d))/g,',');
+  return (neg?'-':'')+'₹'+(rest?rest+',':'')+last3;
+}
+function esc(s){ return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):'' }
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function dateDisplay(d){
+  if(!d) return '';
+  const dt=new Date(d+'T00:00:00');
+  return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+}
+function lsGet(k){ try{return JSON.parse(localStorage.getItem(LS_PREFIX+k))}catch(e){return null} }
+function lsSet(k,v){ localStorage.setItem(LS_PREFIX+k,JSON.stringify(v)) }
+function lsDel(k){ localStorage.removeItem(LS_PREFIX+k) }
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── SHA-256 (with fallback for file:// protocol) ──
+async function sha256(message){
+  try{
+    // Try Web Crypto API first (works on https:// and localhost)
+    const buf = new TextEncoder().encode(message);
+    const hash = await crypto.subtle.digest('SHA-256',buf);
+    return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){
+    // Fallback: pure JS SHA-256 for file:// protocol
+    return sha256Fallback(message);
+  }
+}
+function sha256Fallback(msg){
+  function rr(n,x){return(x>>>n)|(x<<(32-n))}
+  function ch(x,y,z){return(x&y)^(~x&z)}
+  function maj(x,y,z){return(x&y)^(x&z)^(y&z)}
+  function s0(x){return rr(2,x)^rr(13,x)^rr(22,x)}
+  function s1(x){return rr(6,x)^rr(11,x)^rr(25,x)}
+  function g0(x){return rr(7,x)^rr(18,x)^(x>>>3)}
+  function g1(x){return rr(17,x)^rr(19,x)^(x>>>10)}
+  const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  let H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const bytes=new TextEncoder().encode(msg);
+  const bits=bytes.length*8;
+  const padded=new Uint8Array(Math.ceil((bytes.length+9)/64)*64);
+  padded.set(bytes);padded[bytes.length]=0x80;
+  const dv=new DataView(padded.buffer);
+  dv.setUint32(padded.length-4,bits,false);
+  for(let off=0;off<padded.length;off+=64){
+    const W=new Array(64);
+    for(let i=0;i<16;i++) W[i]=dv.getUint32(off+i*4,false);
+    for(let i=16;i<64;i++) W[i]=(g1(W[i-2])+W[i-7]+g0(W[i-15])+W[i-16])>>>0;
+    let[a,b,c,d,e,f,g,h]=H;
+    for(let i=0;i<64;i++){
+      const T1=(h+s1(e)+ch(e,f,g)+K[i]+W[i])>>>0;
+      const T2=(s0(a)+maj(a,b,c))>>>0;
+      h=g;g=f;f=e;e=(d+T1)>>>0;d=c;c=b;b=a;a=(T1+T2)>>>0;
+    }
+    H=[a,b,c,d,e,f,g,h].map((v,i)=>(v+H[i])>>>0);
+  }
+  return H.map(v=>v.toString(16).padStart(8,'0')).join('');
+}
+
+// ── API HELPERS ──
+async function apiFetch(mode, params={}){
+  params.mode = mode;
+  const qs = Object.keys(params).map(k=>encodeURIComponent(k)+'='+encodeURIComponent(params[k]||'')).join('&');
+  const url = SCRIPT_URL+'?'+qs;
+  try{
+    const resp = await fetch(url);
+    const text = await resp.text();
+    let jsonStr = text.trim();
+    const cbMatch = jsonStr.match(/^[a-zA-Z_]\w*\(([\s\S]*)\)$/);
+    if(cbMatch) jsonStr = cbMatch[1];
+    return JSON.parse(jsonStr);
+  }catch(e){
+    console.error('apiFetch error for mode=' + mode + ':', e.message);
+    throw e;
+  }
+}
+
+function fireAndForget(mode, params={}){
+  params.mode = mode;
+  const qs = Object.keys(params).map(k=>encodeURIComponent(k)+'='+encodeURIComponent(params[k]||'')).join('&');
+  const url = SCRIPT_URL+'?'+qs;
+  fetch(url).catch(()=>{
+    document.getElementById('write-iframe').src = url;
+  });
+}
+
+// ── DATA LOADING ──
+async function loadAllData(){
+  // Load all 3 in PARALLEL
+  const [salesResult, partiesResult, ptxnsResult] = await Promise.allSettled([
+    apiFetch('read', {days: 7}),
+    apiFetch('readCategories'),
+    apiFetch('readPartyTransactions')
+  ]);
+  
+  if(salesResult.status==='fulfilled'){
+    salesData = salesResult.value || [];
+    lsSet('sales', salesData);
+  } else { salesData = lsGet('sales') || []; }
+  
+  if(partiesResult.status==='fulfilled'){
+    partiesData = partiesResult.value || [];
+    lsSet('parties', partiesData);
+  } else { partiesData = lsGet('parties') || []; }
+  
+  if(ptxnsResult.status==='fulfilled'){
+    partyTxnData = ptxnsResult.value || [];
+    lsSet('partyTxn', partyTxnData);
+  } else { partyTxnData = lsGet('partyTxn') || []; }
+}
+
+// Individual tab refreshes — fast, fetch only what's needed
+async function refreshSales(){
+  try{
+    const sales = await apiFetch('read', {days: 7});
+    salesData = sales || [];
+    lsSet('sales', salesData);
+  }catch(e){}
+}
+
+async function refreshParties(){
+  try{
+    const parties = await apiFetch('readCategories');
+    partiesData = parties || [];
+    lsSet('parties', partiesData);
+  }catch(e){}
+}
+
+async function refreshPartyTxns(){
+  try{
+    const ptxns = await apiFetch('readPartyTransactions');
+    partyTxnData = ptxns || [];
+    lsSet('partyTxn', partyTxnData);
+  }catch(e){}
+}
+
+// Fetch all sales (when user picks older date in Records)
+async function loadSalesForDate(dateStr){
+  document.getElementById('history-list').innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Loading older records...</div>';
+  try{
+    const allSales = await apiFetch('read'); // no days param = all data
+    salesData = allSales || [];
+    lsSet('sales', salesData);
+    renderHistory();
+  }catch(e){
+    document.getElementById('history-list').innerHTML = '<div style="text-align:center;padding:20px;color:var(--red)">Failed to load. Try again.</div>';
+  }
+}
+
+// Manual refresh — full clean fetch from server (no merge)
+async function manualRefresh(){
+  setSyncing(true);
+  showToast('Refreshing...');
+  try{
+    const [s, p, pt] = await Promise.allSettled([
+      apiFetch('read', {days: 7}),
+      apiFetch('readCategories'),
+      apiFetch('readPartyTransactions')
+    ]);
+    if(s.status==='fulfilled'){ salesData = s.value || []; lsSet('sales', salesData); }
+    if(p.status==='fulfilled'){ partiesData = p.value || []; lsSet('parties', partiesData); }
+    if(pt.status==='fulfilled'){ partyTxnData = pt.value || []; lsSet('partyTxn', partyTxnData); }
+    populatePartyDropdown();
+    renderAll();
+    showToast('✓ Refreshed');
+  }catch(e){
+    showToast('Refresh failed');
+  }
+  setSyncing(false);
+}
+
+function loadCachedData(){
+  salesData = lsGet('sales') || [];
+  partiesData = lsGet('parties') || [];
+  partyTxnData = lsGet('partyTxn') || [];
+}
+
+// ══════════════════════════════════════
+// PIN SYSTEM
+// ══════════════════════════════════════
+let pinMode = 'master'; // master, personal, register-name, register-pin, register-confirm
+let pinBuffer = '';
+let registerName = '';
+let registerPinHash = '';
+
+function initPinSystem(){
+  const masterOk = lsGet('masterPinOk');
+  const users = lsGet('users') || [];
+  if(!masterOk){
+    pinMode = 'master';
+    updatePinUI();
+  } else if(users.length > 0){
+    pinMode = 'personal';
+    updatePinUI();
+  } else {
+    pinMode = 'register-name';
+    updatePinUI();
+  }
+}
+
+function updatePinUI(){
+  const titleEl = document.getElementById('pin-title');
+  const subEl = document.getElementById('pin-subtitle');
+  const nameSection = document.getElementById('pin-name-section');
+  const keypad = document.getElementById('pin-keypad');
+  const dots = document.getElementById('pin-dots');
+
+  nameSection.style.display = 'none';
+  keypad.style.display = 'grid';
+  dots.style.display = 'flex';
+  document.getElementById('pin-error').textContent = '';
+  pinBuffer = '';
+  updatePinDots();
+
+  if(pinMode==='master'){
+    titleEl.textContent = t('masterPinTitle');
+    subEl.textContent = t('firstAccess');
+    document.getElementById('pin-register-link').style.display = 'none';
+  } else if(pinMode==='personal'){
+    titleEl.textContent = t('personalPinTitle');
+    subEl.textContent = t('welcome');
+    document.getElementById('pin-register-link').style.display = 'block';
+  } else if(pinMode==='register-name'){
+    titleEl.textContent = t('enterName');
+    subEl.textContent = t('registration');
+    nameSection.style.display = 'flex';
+    nameSection.style.flexDirection = 'column';
+    nameSection.style.alignItems = 'center';
+    keypad.style.display = 'none';
+    dots.style.display = 'none';
+    document.getElementById('pin-register-link').style.display = 'none';
+    document.getElementById('pin-name-input').value = '';
+    document.getElementById('pin-name-input').focus();
+  } else if(pinMode==='register-pin'){
+    titleEl.textContent = t('setPinTitle');
+    subEl.textContent = registerName;
+    document.getElementById('pin-register-link').style.display = 'none';
+  } else if(pinMode==='register-confirm'){
+    titleEl.textContent = t('confirmSetPin');
+    subEl.textContent = registerName;
+    document.getElementById('pin-register-link').style.display = 'none';
+  }
+}
+
+function startRegistration(){
+  pinMode = 'register-name';
+  updatePinUI();
+}
+
+function updatePinDots(){
+  document.querySelectorAll('#pin-dots .pin-dot').forEach((dot,i)=>{
+    dot.classList.toggle('filled', i < pinBuffer.length);
+    dot.classList.remove('error');
+  });
+}
+
+function pinError(msg){
+  document.getElementById('pin-error').textContent = msg;
+  document.querySelectorAll('#pin-dots .pin-dot').forEach(d=>d.classList.add('error'));
+  setTimeout(()=>{
+    pinBuffer='';
+    updatePinDots();
+    document.getElementById('pin-error').textContent='';
+  },1200);
+}
+
+// Keypad handler
+document.getElementById('pin-keypad').addEventListener('click', function(e){
+  const key = e.target.closest('.pin-key');
+  if(!key) return;
+  const val = key.dataset.key;
+  if(val==='back'){
+    pinBuffer = pinBuffer.slice(0,-1);
+    updatePinDots();
+    return;
+  }
+  if(val==='submit'){
+    if(pinBuffer.length===4) handlePinComplete();
+    return;
+  }
+  if(val===''||pinBuffer.length>=4) return;
+  pinBuffer += val;
+  updatePinDots();
+});
+
+async function handlePinComplete(){
+  const pin = pinBuffer;
+  const hash = await sha256(pin);
+
+  if(pinMode==='master'){
+    document.getElementById('pin-subtitle').innerHTML = '<span style="color:var(--gold)">⟳ Verifying...</span>';
+    document.getElementById('pin-error').textContent = '';
+    try{
+      const config = await apiFetch('readConfig');
+      if(config.MasterPINHash === hash){
+        lsSet('masterPinOk', true);
+        document.getElementById('pin-subtitle').textContent = '✓ Verified';
+        let users = [];
+        try{ users = await apiFetch('readUsers'); }catch(e){}
+        lsSet('users', users);
+        if(users.length > 0){
+          pinMode = 'personal';
+        } else {
+          pinMode = 'register-name';
+        }
+        updatePinUI();
+      } else {
+        pinError(t('wrongPin'));
+      }
+    }catch(e){
+      // Retry once after 2 seconds
+      document.getElementById('pin-subtitle').innerHTML = '<span style="color:var(--gold)">⟳ Retrying...</span>';
+      setTimeout(async()=>{
+        try{
+          const config = await apiFetch('readConfig');
+          if(config.MasterPINHash === hash){
+            lsSet('masterPinOk', true);
+            let users = [];
+            try{ users = await apiFetch('readUsers'); }catch(e){}
+            lsSet('users', users);
+            if(users.length > 0){ pinMode = 'personal'; } else { pinMode = 'register-name'; }
+            updatePinUI();
+          } else {
+            pinError(t('wrongPin'));
+          }
+        }catch(e2){
+          pinError('Error: ' + e2.message + ' — check internet');
+        }
+      }, 2000);
+    }
+  } else if(pinMode==='personal'){
+    const users = lsGet('users') || [];
+    const found = users.find(u=>u.pinHash===hash);
+    if(found){
+      // Correct PIN — instant login
+      loginAs(found.name, hash);
+      // Background: verify not revoked + refresh all users cache
+      apiFetch('readUsers').then(serverUsers=>{
+        lsSet('users', serverUsers);
+        const still = serverUsers.find(u=>u.pinHash===hash);
+        if(!still){ lsDel('users'); logoutUser(); }
+      }).catch(()=>{});
+    } else {
+      // Not found — instantly wrong
+      pinError(t('wrongPin'));
+    }
+  } else if(pinMode==='register-pin'){
+    registerPinHash = hash;
+    pinMode = 'register-confirm';
+    updatePinUI();
+  } else if(pinMode==='register-confirm'){
+    if(hash === registerPinHash){
+      // Register
+      try{
+        const users = await apiFetch('readUsers');
+        const dup = users.find(u=>u.pinHash===hash);
+        if(dup){
+          pinError(t('duplicatePin'));
+          pinMode = 'register-pin';
+          registerPinHash = '';
+          setTimeout(()=>updatePinUI(),1500);
+          return;
+        }
+        fireAndForget('register',{name:registerName, pinHash:hash});
+        const localUsers = lsGet('users') || [];
+        localUsers.push({name:registerName, pinHash:hash});
+        lsSet('users', localUsers);
+        loginAs(registerName, hash);
+      }catch(e){
+        pinError('Network error');
+      }
+    } else {
+      pinError(t('wrongPin'));
+      pinMode = 'register-pin';
+      registerPinHash = '';
+      setTimeout(()=>updatePinUI(),1500);
+    }
+  }
+}
+
+// Name input
+document.getElementById('pin-name-input').addEventListener('input', function(){
+  document.getElementById('pin-name-btn').disabled = this.value.trim().length < 1;
+});
+document.getElementById('pin-name-btn').addEventListener('click', function(){
+  registerName = document.getElementById('pin-name-input').value.trim();
+  if(registerName){
+    pinMode = 'register-pin';
+    updatePinUI();
+  }
+});
+
+function loginAs(name, hash){
+  currentUser = {name, pinHash:hash};
+  sessionStorage.setItem('sl_user', JSON.stringify(currentUser));
+  document.getElementById('pin-screen').classList.remove('active');
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('user-badge').textContent = name;
+  initApp();
+}
+
+function logoutUser(){
+  currentUser = null;
+  sessionStorage.removeItem('sl_user');
+  lsDel('users');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('pin-screen').classList.add('active');
+  pinMode = 'personal';
+  updatePinUI();
+}
+
+// ══════════════════════════════════════
+// APP INIT
+// ══════════════════════════════════════
+async function initApp(){
+  lang = lsGet('lang') || 'en';
+  updateI18n();
+  document.getElementById('sale-date').value = todayStr();
+  document.getElementById('ptxn-date').value = todayStr();
+  document.getElementById('history-date').value = todayStr();
+  
+  // Show cached data immediately
+  loadCachedData();
+  renderAll();
+  
+  // Background: fetch fresh data from server with syncing indicator
+  setSyncing(true);
+  loadAllData().then(()=>{
+    populatePartyDropdown();
+    renderAll();
+    setSyncing(false);
+  }).catch(()=>{
+    setSyncing(false);
+  });
+  
+  // Sync all users to local cache so all family PINs work instantly
+  apiFetch('readUsers').then(users=>{ if(users&&users.length) lsSet('users',users); }).catch(()=>{});
+  
+  // Retry any pending writes from previous session
+  const pending = lsGet('pendingWrites') || [];
+  if(pending.length){
+    Promise.all(pending.map(p => apiFetch('write', p)))
+      .then(() => { lsSet('pendingWrites', []); })
+      .catch(() => { /* Keep pendingWrites — will retry next app open */ });
+  }
+}
+
+function setSyncing(on){
+  const el = document.getElementById('history-syncing');
+  const btn = document.getElementById('refresh-btn');
+  if(on){
+    el.style.display = 'block';
+    btn.style.animation = 'spin .8s linear infinite';
+  } else {
+    el.style.display = 'none';
+    btn.style.animation = '';
+  }
+}
+
+function renderAll(){
+  populatePartyDropdown();
+  renderParties();
+  renderHistory();
+  updateSaveBtn();
+  document.getElementById('sale-amount-text').textContent = entryType==='sale'?t('saleAmount'):t('expenseAmount');
+}
+
+// ══════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════
+function switchTab(tab){
+  currentTab = tab;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+tab).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active', ['sales','parties','history'][i]===tab);
+  });
+  // Refresh dates to today on every tab switch
+  refreshDates();
+  // Reset party detail
+  if(tab==='parties'){
+    document.getElementById('parties-list-view').style.display='block';
+    document.getElementById('party-detail-view').style.display='none';
+    document.getElementById('back-btn').style.display='none';
+    navStack=[];
+    renderParties();
+  } else if(tab==='history'){
+    renderHistory();
+    document.getElementById('back-btn').style.display='none';
+    navStack=[];
+  } else {
+    document.getElementById('back-btn').style.display='none';
+    navStack=[];
+  }
+}
+
+function goBack(){
+  if(navStack.length){
+    const prev = navStack.pop();
+    if(prev==='parties-list'){
+      document.getElementById('parties-list-view').style.display='block';
+      document.getElementById('party-detail-view').style.display='none';
+    }
+    if(navStack.length===0) document.getElementById('back-btn').style.display='none';
+  }
+}
+
+// ══════════════════════════════════════
+// SALES TAB
+// ══════════════════════════════════════
+function setEntryType(type){
+  entryType = type;
+  saleMethod = '';
+  expenseMethod = '';
+  document.getElementById('toggle-sale').className = 'type-toggle-btn'+(type==='sale'?' active-sale':'');
+  document.getElementById('toggle-expense').className = 'type-toggle-btn'+(type==='expense'?' active-expense':'');
+  document.getElementById('sale-method-group').style.display = type==='sale'?'block':'none';
+  document.getElementById('expense-method-group').style.display = type==='expense'?'block':'none';
+  document.getElementById('sale-party-group').style.display = 'none';
+  document.getElementById('sale-split-group').style.display = 'none';
+  document.getElementById('sale-amount-text').textContent = type==='sale'?t('saleAmount'):t('expenseAmount');
+  document.querySelectorAll('#sale-method-chips .chip, #expense-method-chips .chip').forEach(c=>c.classList.remove('active'));
+  updateSaveBtn();
+}
+
+function setSaleMethod(m){
+  saleMethod = m;
+  document.querySelectorAll('#sale-method-chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.method===m));
+  document.getElementById('sale-party-group').style.display = (m==='UPI'||m==='Cash+UPI')?'block':'none';
+  document.getElementById('sale-split-group').style.display = m==='Cash+UPI'?'block':'none';
+  updateSaveBtn();
+}
+
+function setExpenseMethod(m){
+  expenseMethod = m;
+  document.querySelectorAll('#expense-method-chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.method===m));
+  updateSaveBtn();
+}
+
+function populatePartyDropdown(){
+  const sel = document.getElementById('sale-party');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">-- Select --</option>';
+  // Sort parties by transaction count (most used first)
+  const txnCount = {};
+  partyTxnData.forEach(tx=>{ txnCount[tx.partyName] = (txnCount[tx.partyName]||0) + 1; });
+  const sorted = [...partiesData].sort((a,b)=>(txnCount[b.partyName]||0)-(txnCount[a.partyName]||0));
+  sorted.forEach(p=>{
+    sel.innerHTML += `<option value="${p.partyName}">${esc(p.partyName)}</option>`;
+  });
+  sel.innerHTML += '<option value="Other">Other</option>';
+  sel.value = current;
+}
+
+function updateSaveBtn(){
+  const amt = document.getElementById('sale-amount').value;
+  let valid = amt && Number(amt) > 0;
+  if(entryType==='sale'){
+    valid = valid && saleMethod;
+    if(saleMethod==='UPI'||saleMethod==='Cash+UPI'){
+      valid = valid && document.getElementById('sale-party').value;
+    }
+    if(saleMethod==='Cash+UPI'){
+      const ca = Number(document.getElementById('sale-cash-amount').value)||0;
+      const ua = Number(document.getElementById('sale-upi-amount').value)||0;
+      valid = valid && ca>0 && ua>0 && (ca+ua)===Number(amt);
+    }
+  } else {
+    valid = valid && expenseMethod;
+  }
+  document.getElementById('sale-save-btn').disabled = !valid;
+}
+
+// Attach input listeners for validation
+['sale-amount','sale-cash-amount','sale-upi-amount','sale-party'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', ()=>{
+    updateSaveBtn();
+    // Split validation
+    if(saleMethod==='Cash+UPI'){
+      const total = Number(document.getElementById('sale-amount').value)||0;
+      const ca = Number(document.getElementById('sale-cash-amount').value)||0;
+      const ua = Number(document.getElementById('sale-upi-amount').value)||0;
+      const err = document.getElementById('split-error');
+      if(ca && ua && (ca+ua)!==total){
+        err.style.display='block';
+        err.textContent = `Cash + UPI = ${formatINR(ca+ua)} ≠ ${formatINR(total)}`;
+      } else {
+        err.style.display='none';
+      }
+    }
+  });
+  if(el) el.addEventListener('change', updateSaveBtn);
+});
+
+async function saveSaleEntry(){
+  const btn = document.getElementById('sale-save-btn');
+  btn.disabled = true;
+  const syncEl = document.getElementById('sale-sync');
+
+  const entryId = String(Date.now());
+  const date = document.getElementById('sale-date').value || todayStr();
+  const amount = Number(document.getElementById('sale-amount').value);
+  const desc = document.getElementById('sale-desc').value.trim();
+
+  if(entryType==='sale'){
+    const method = saleMethod;
+    const party = (method==='UPI'||method==='Cash+UPI') ? document.getElementById('sale-party').value : '';
+    const cashAmt = method==='Cash+UPI' ? Number(document.getElementById('sale-cash-amount').value) : (method==='Cash'?amount:0);
+    const upiAmt = method==='Cash+UPI' ? Number(document.getElementById('sale-upi-amount').value) : (method==='UPI'?amount:0);
+    const hasParty = (method==='UPI'||method==='Cash+UPI') && party && party!=='Other';
+
+    // Safety backup
+    const pending = lsGet('pendingWrites') || [];
+    pending.push({date, type:'Sale', amount, cashAmount:cashAmt, upiAmount:upiAmt, paymentMethod:method, party, description:desc, addedBy:currentUser.name, entryId});
+    lsSet('pendingWrites', pending);
+
+    // Add party txn to local data instantly (party tab updates immediately)
+    if(hasParty){
+      partyTxnData.unshift({date, partyName:party, type:'Credit', amount:upiAmt, method:'UPI', description:'', note:'Added via sale', source:'Via Sale', addedBy:currentUser.name, editedBy:'', entryId});
+      lsSet('partyTxn', partyTxnData);
+    }
+
+    // Instant feedback
+    syncEl.textContent = t('saved');
+    showToast(t('saved'));
+    resetSaleForm();
+    renderParties(); // Update party balances instantly
+    setSyncing(true);
+
+    // Fire BOTH writes in parallel (not sequential)
+    const writes = [
+      apiFetch('write',{date, type:'Sale', amount, cashAmount:cashAmt, upiAmount:upiAmt, paymentMethod:method, party, description:desc, addedBy:currentUser.name, entryId})
+    ];
+    if(hasParty){
+      writes.push(apiFetch('writePartyTransaction',{date, partyName:party, type:'Credit', amount:upiAmt, method:'UPI', description:'', note:'Added via sale', source:'Via Sale', addedBy:currentUser.name, entryId}));
+    }
+
+    Promise.all(writes).then(()=>{
+      lsSet('pendingWrites', []);
+      return Promise.all([refreshSales(), refreshPartyTxns()]);
+    }).then(()=>{
+      renderAll();
+      setSyncing(false);
+    }).catch(()=>{
+      syncEl.textContent = '❌ Write may have failed — tap ↻';
+      setSyncing(false);
+    });
+
+  } else {
+    const method = expenseMethod;
+    const pending = lsGet('pendingWrites') || [];
+    pending.push({date, type:'Expense', amount, cashAmount:method==='Cash'?amount:0, upiAmount:0, paymentMethod:method, party:'', description:desc, addedBy:currentUser.name, entryId});
+    lsSet('pendingWrites', pending);
+
+    syncEl.textContent = t('saved');
+    showToast(t('saved'));
+    resetSaleForm();
+    setSyncing(true);
+
+    apiFetch('write',{date, type:'Expense', amount, cashAmount:method==='Cash'?amount:0, upiAmount:0, paymentMethod:method, party:'', description:desc, addedBy:currentUser.name, entryId
+    }).then(()=>{
+      lsSet('pendingWrites', []);
+      return refreshSales();
+    }).then(()=>{
+      renderAll();
+      setSyncing(false);
+    }).catch(()=>{
+      syncEl.textContent = '❌ Write may have failed — tap ↻';
+      setSyncing(false);
+    });
+  }
+
+  setTimeout(()=>{ syncEl.textContent = ''; }, 3000);
+}
+
+function resetSaleForm(){
+  document.getElementById('sale-amount').value = '';
+  const descEl = document.getElementById('sale-desc');
+  descEl.value = '';
+  descEl.style.height = 'auto';
+  document.getElementById('sale-desc-clear').classList.remove('show');
+  document.getElementById('sale-cash-amount').value = '';
+  document.getElementById('sale-upi-amount').value = '';
+  document.getElementById('sale-party').value = '';
+  document.getElementById('sale-date').value = todayStr();
+  saleMethod=''; expenseMethod='';
+  document.querySelectorAll('#sale-method-chips .chip, #expense-method-chips .chip').forEach(c=>c.classList.remove('active'));
+  document.getElementById('sale-party-group').style.display='none';
+  document.getElementById('sale-split-group').style.display='none';
+  document.getElementById('split-error').style.display='none';
+  updateSaveBtn();
+}
+
+// ══════════════════════════════════════
+// PARTIES TAB
+// ══════════════════════════════════════
+function renderParties(filter){
+  const list = document.getElementById('parties-list');
+  let filtered = partiesData;
+  if(filter){
+    const q = filter.toLowerCase();
+    filtered = partiesData.filter(p=>p.partyName.toLowerCase().includes(q));
+  }
+  if(!filtered.length){
+    list.innerHTML = `<div class="empty-state"><div class="emoji">🤝</div><div>${filter?'No match':t('noEntries')}</div></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(p=>{
+    const bal = calcPartyBalance(p.partyName);
+    const color = bal>0?'red':bal<0?'green':'green';
+    return `<div class="party-item tapfx" onclick="openPartyDetail('${p.partyName.replace(/'/g,"\\'")}')">
+      <div><div class="party-name">${esc(p.partyName)}</div></div>
+      <div style="display:flex;align-items:center"><span class="party-balance ${color}">${formatINR(-bal)}</span><span class="party-arrow">›</span></div>
+    </div>`;
+  }).join('');
+}
+
+function filterParties(){
+  const q = document.getElementById('party-search').value.trim();
+  renderParties(q);
+}
+
+function calcPartyBalance(partyName){
+  let credits = 0, debits = 0;
+  partyTxnData.forEach(function(tx){
+    if(tx.partyName===partyName){
+      if(tx.type==='Credit') credits+=Number(tx.amount);
+      else if(tx.type==='Debit') debits+=Number(tx.amount);
+    }
+  });
+  return credits - debits;
+}
+
+function openAddPartyModal(){
+  document.getElementById('add-party-name').value = '';
+  document.getElementById('add-party-error').textContent = '';
+  document.getElementById('add-party-modal').classList.add('active');
+  setTimeout(()=>document.getElementById('add-party-name').focus(),100);
+}
+
+function closeAddPartyModal(){
+  document.getElementById('add-party-modal').classList.remove('active');
+}
+
+async function addParty(){
+  const name = document.getElementById('add-party-name').value.trim();
+  if(!name){
+    document.getElementById('add-party-error').textContent = 'Enter a name';
+    return;
+  }
+  if(partiesData.find(p=>p.partyName.toLowerCase()===name.toLowerCase())){
+    document.getElementById('add-party-error').textContent = t('duplicateParty');
+    return;
+  }
+  const partyId = String(Date.now());
+  const addBtn = document.getElementById('add-party-btn');
+  const origText = addBtn.innerHTML;
+  addBtn.innerHTML = '⟳ Adding...';
+  addBtn.disabled = true;
+  try{
+    await apiFetch('addParty',{partyName:name, createdBy:currentUser.name, partyId});
+    // Write confirmed — add locally and close
+    partiesData.push({partyName:name, createdDate:todayStr(), createdBy:currentUser.name, partyId});
+    lsSet('parties', partiesData);
+    closeAddPartyModal();
+    document.getElementById('party-search').value = '';
+    renderParties();
+    populatePartyDropdown();
+    showToast(t('saved'));
+    // Background refresh (don't wait)
+    refreshParties().then(()=>{renderParties(); populatePartyDropdown();}).catch(()=>{});
+  }catch(e){
+    document.getElementById('add-party-error').textContent = '❌ Failed — try again';
+    addBtn.innerHTML = origText;
+    addBtn.disabled = false;
+  }
+}
+
+function openPartyDetail(name){
+  currentParty = name;
+  navStack.push('parties-list');
+  document.getElementById('back-btn').style.display='inline';
+  document.getElementById('parties-list-view').style.display='none';
+  document.getElementById('party-detail-view').style.display='block';
+  document.getElementById('party-detail-name').textContent = name;
+  document.getElementById('party-txn-form').style.display='none';
+  ptxnType = '';
+  renderPartyDetail(); renderParties();
+}
+
+function renderPartyDetail(){
+  const bal = calcPartyBalance(currentParty);
+  const balEl = document.getElementById('party-detail-balance');
+  balEl.textContent = formatINR(-bal);
+  balEl.className = 'amount '+(bal>0?'red':bal<0?'green':'green');
+
+  const txns = partyTxnData.filter(t=>t.partyName===currentParty).sort((a,b)=>(b.entryId||0)-(a.entryId||0));
+  const list = document.getElementById('party-txn-list');
+  if(!txns.length){
+    list.innerHTML = `<div class="empty-state" style="padding:20px"><div>${t('noEntries')}</div></div>`;
+    return;
+  }
+  list.innerHTML = txns.map(tx=>{
+    const isCredit = tx.type==='Credit';
+    const viaTag = tx.source==='Via Sale'?`<span class="txn-tag">Via Sale</span>`:'';
+    return `<div class="txn-item">
+      <div class="txn-icon ${isCredit?'red':'green'}" style="font-weight:700;font-size:18px">${isCredit?'−':'+'}</div>
+      <div class="txn-body">
+        <div class="txn-top"><span class="txn-amount ${isCredit?'red':'green'}">${formatINR(tx.amount)}</span><span class="txn-method">${tx.method||''}</span></div>
+        ${tx.note?`<div class="txn-desc">${esc(tx.note)}</div>`:''}
+        <div class="txn-meta"><span>${dateDisplay(tx.date)}</span><span>${t('addedBy')} ${esc(tx.addedBy||'')}</span>${viaTag}</div>
+      </div>
+      <div class="txn-actions">
+        ${tx.source!=='Via Sale'?`<span class="txn-action-btn" onclick="editPartyTxn('${tx.entryId}')">✏️</span><span class="txn-action-btn" onclick="deletePartyTxn('${tx.entryId}')">✕</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showPartyTxnForm(type){
+  ptxnType = type;
+  document.getElementById('party-txn-form').style.display='block';
+  document.getElementById('ptxn-amount').value='';
+  const descEl = document.getElementById('ptxn-desc');
+  descEl.value=''; descEl.style.height='auto';
+  document.getElementById('ptxn-desc-clear').classList.remove('show');
+  const noteEl = document.getElementById('ptxn-note');
+  noteEl.value=''; noteEl.style.height='auto';
+  document.getElementById('ptxn-note-clear').classList.remove('show');
+  document.getElementById('ptxn-date').value = todayStr();
+  document.getElementById('ptxn-sync').textContent = '';
+  ptxnMethod = type==='Credit'?'UPI':'Cash';
+  document.querySelectorAll('#ptxn-method-chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.method===ptxnMethod));
+  document.getElementById('ptxn-desc-group').style.display = type==='Credit'?'block':'none';
+}
+
+function setPtxnMethod(m){
+  ptxnMethod = m;
+  document.querySelectorAll('#ptxn-method-chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.method===m));
+}
+
+async function savePartyTxn(){
+  const amt = Number(document.getElementById('ptxn-amount').value);
+  if(!amt || amt<=0 || !ptxnMethod) return;
+  const entryId = String(Date.now());
+  const date = document.getElementById('ptxn-date').value || todayStr();
+  const desc = document.getElementById('ptxn-desc').value.trim();
+  const note = document.getElementById('ptxn-note').value.trim();
+  const syncEl = document.getElementById('ptxn-sync');
+  syncEl.textContent = t('saving');
+
+  try{
+    await apiFetch('writePartyTransaction',{
+      date, partyName:currentParty, type:ptxnType, amount:amt, method:ptxnMethod,
+      description:desc, note, source:'Manual', addedBy:currentUser.name, entryId
+    });
+    // Add to local immediately
+    partyTxnData.unshift({date, partyName:currentParty, type:ptxnType, amount:amt, method:ptxnMethod, description:desc, note, source:'Manual', addedBy:currentUser.name, editedBy:'', entryId});
+    lsSet('partyTxn', partyTxnData);
+    syncEl.textContent = t('saved');
+    document.getElementById('party-txn-form').style.display='none';
+    renderPartyDetail(); renderParties();
+    showToast(t('saved'));
+    // Background sync
+    refreshPartyTxns().then(()=>{renderPartyDetail();renderParties();}).catch(()=>{});
+  }catch(e){
+    syncEl.textContent = '❌ Failed — try again';
+    showToast('❌ Save failed');
+  }
+  setTimeout(()=>{ syncEl.textContent = ''; }, 2000);
+}
+
+function attemptDeleteParty(){
+  const bal = calcPartyBalance(currentParty);
+  if(bal!==0){
+    showToast(t('clearBalance'));
+    return;
+  }
+  const party = partiesData.find(p=>p.partyName===currentParty);
+  if(!party) return;
+  openPinModal(t('deleteConfirm'), currentParty, async()=>{
+    try{
+      await apiFetch('deleteParty',{partyId:party.partyId, deletedBy:currentUser.name});
+      // Remove from local immediately
+      partiesData = partiesData.filter(p=>p.partyName!==currentParty);
+      partyTxnData = partyTxnData.filter(t=>t.partyName!==currentParty);
+      lsSet('parties', partiesData);
+      lsSet('partyTxn', partyTxnData);
+      goBack();
+      renderParties();
+      populatePartyDropdown();
+      showToast('✓ Deleted successfully');
+      // Background sync
+      refreshParties().then(()=>{renderParties(); populatePartyDropdown();}).catch(()=>{});
+      refreshPartyTxns().catch(()=>{});
+    }catch(e){
+      showToast('❌ Delete failed');
+    }
+  });
+}
+
+// ══════════════════════════════════════
+// HISTORY TAB
+// ══════════════════════════════════════
+function onHistoryDateChange(){
+  const selDate = document.getElementById('history-date').value;
+  const today = todayStr();
+  const yd = new Date(Date.now()-86400000); const yesterday = yd.getFullYear()+'-'+String(yd.getMonth()+1).padStart(2,'0')+'-'+String(yd.getDate()).padStart(2,'0');
+  
+  // If selected date is older than what we have cached, fetch all data
+  const hasData = salesData.some(s=>s.date===selDate);
+  if(!hasData && selDate !== today && selDate !== yesterday){
+    loadSalesForDate(selDate);
+  } else {
+    renderHistory();
+  }
+}
+
+function renderHistory(){
+  const selDate = document.getElementById('history-date').value || todayStr();
+  const today = todayStr();
+  const yd = new Date(Date.now()-86400000); const yesterday = yd.getFullYear()+'-'+String(yd.getMonth()+1).padStart(2,'0')+'-'+String(yd.getDate()).padStart(2,'0');
+
+  // Summary for SELECTED date (not always today)
+  const summaryLabel = selDate===today?t('today'):selDate===yesterday?t('yesterday'):dateDisplay(selDate);
+  document.getElementById('summary-title').textContent = summaryLabel + ' — Summary';
+
+  const dateSales = salesData.filter(s=>s.date===selDate);
+  let saleTotal=0, saleCash=0, saleOnline=0, expTotal=0, expCash=0, expOnline=0;
+  dateSales.forEach(s=>{
+    const amt=Number(s.amount);
+    if(s.type==='Sale'){
+      saleTotal+=amt;
+      saleCash+=Number(s.cashAmount)||0;
+      saleOnline+=Number(s.upiAmount)||0;
+    } else {
+      expTotal+=amt;
+      if(s.paymentMethod==='Cash') expCash+=amt; else expOnline+=amt;
+    }
+  });
+  document.getElementById('sum-sale').textContent = formatINR(saleTotal);
+  document.getElementById('sum-expense').textContent = formatINR(expTotal);
+  document.getElementById('sum-sale-detail').innerHTML = `${t('cash')}: ${formatINR(saleCash)}<br>UPI: ${formatINR(saleOnline)}`;
+  document.getElementById('sum-expense-detail').innerHTML = `${t('cash')}: ${formatINR(expCash)}<br>${t('online')}: ${formatINR(expOnline)}`;
+  const net = saleTotal - expTotal;
+  const netEl = document.getElementById('sum-net');
+  netEl.textContent = formatINR(net);
+  netEl.className = 'amount-sm '+(net>=0?'green':'red');
+
+  // Transaction list
+  const list = document.getElementById('history-list');
+  let dates = [selDate];
+  if(selDate===today) dates = [today, yesterday];
+
+  let html = '';
+  dates.forEach(d=>{
+    const label = d===today?t('today'):d===yesterday?t('yesterday'):dateDisplay(d);
+    const entries = salesData.filter(s=>s.date===d).sort((a,b)=>(b.entryId||0)-(a.entryId||0));
+    html += `<div class="date-sep">${label}</div>`;
+    if(!entries.length){
+      html += `<div style="text-align:center;color:var(--muted);padding:12px;font-size:14px">${t('noEntries')}</div>`;
+    }
+    entries.forEach(s=>{
+      const isSale = s.type==='Sale';
+      const canEdit = (isSale && s.paymentMethod==='Cash') || !isSale;
+      html += `<div class="txn-item">
+        <div class="txn-icon ${isSale?'green':'red'}">${isSale?'+':'−'}</div>
+        <div class="txn-body">
+          <div class="txn-top">
+            <span class="txn-amount ${isSale?'green':'red'}">${formatINR(s.amount)}</span>
+            <span class="txn-method">${s.paymentMethod}${s.party?' · '+esc(s.party):''}</span>
+          </div>
+          ${s.description?`<div class="txn-desc">"${esc(s.description)}"</div>`:''}
+          <div class="txn-meta">
+            <span>${t('addedBy')} ${esc(s.addedBy||'')}</span>
+            ${s.editedBy?`<span>· ${t('editedBy')} ${esc(s.editedBy)}</span>`:''}
+          </div>
+        </div>
+        <div class="txn-actions">
+          <span class="txn-action-btn" onclick="${canEdit?`editSaleEntry('${s.entryId}')`:`showToast('${t('editNotAllowed')}')`}">✏️</span>
+          <span class="txn-action-btn" onclick="deleteSaleEntry('${s.entryId}')">✕</span>
+        </div>
+      </div>`;
+    });
+  });
+  list.innerHTML = html;
+}
+
+// ══════════════════════════════════════
+// EDIT & DELETE
+// ══════════════════════════════════════
+function editSaleEntry(entryId){
+  const entry = salesData.find(s=>String(s.entryId)===String(entryId));
+  if(!entry){ showToast('Entry not found'); return; }
+  const overlay = document.getElementById('edit-overlay');
+  const area = document.getElementById('edit-form-area');
+  area.innerHTML = `
+    <div class="form-group"><label class="form-label">${t('amount')} (₹)</label><input type="number" id="edit-amount" value="${entry.amount}" inputmode="numeric"></div>
+    <div class="form-group"><label class="form-label">${t('description')}</label><div class="voice-input-row"><div class="voice-input-wrap"><textarea id="edit-desc" rows="1" oninput="autoGrow(this);voiceClear('edit-desc')">${entry.description||''}</textarea><button class="voice-clear-btn" id="edit-desc-clear" onclick="clearVoiceInput('edit-desc')">✕</button></div><div class="voice-mic-btn" onclick="toggleMic('edit-desc')">🎤</div></div></div>
+    <div class="form-group"><label class="form-label">${t('date')}</label><input type="date" id="edit-date" value="${entry.date}"></div>
+    <button class="btn btn-gold" onclick="submitEdit('${entryId}')">${t('save')} 💾</button>
+  `;
+  overlay.classList.add('active');
+}
+
+function closeEditOverlay(){
+  document.getElementById('edit-overlay').classList.remove('active');
+}
+
+function submitEdit(entryId){
+  const amount = document.getElementById('edit-amount').value;
+  const desc = document.getElementById('edit-desc').value;
+  const date = document.getElementById('edit-date').value;
+  openPinModal(t('enterPin'),'', async()=>{
+    const entry = salesData.find(s=>String(s.entryId)===String(entryId));
+    const editParams = {entryId, amount, description:desc, date, editedBy:currentUser.name};
+    if(entry){
+      if(entry.paymentMethod==='Cash'){
+        editParams.cashAmount = amount;
+        editParams.upiAmount = '0';
+      } else if(entry.paymentMethod==='Online'){
+        editParams.cashAmount = '0';
+        editParams.upiAmount = '0';
+      }
+    }
+    try{
+      await apiFetch('edit', editParams);
+      // Update local immediately
+      if(entry){
+        entry.amount = Number(amount);
+        entry.description = desc;
+        entry.date = date;
+        entry.editedBy = currentUser.name;
+        if(entry.paymentMethod==='Cash'){ entry.cashAmount=Number(amount); entry.upiAmount=0; }
+      }
+      lsSet('sales', salesData);
+      closeEditOverlay();
+      renderAll();
+      showToast('✓ Edited successfully');
+      // Background sync
+      setSyncing(true); refreshSales().then(()=>{renderAll();setSyncing(false);}).catch(()=>{setSyncing(false);});
+    }catch(e){
+      showToast('❌ Edit failed');
+    }
+  });
+}
+
+function deleteSaleEntry(entryId){
+  const entry = salesData.find(s=>String(s.entryId)===String(entryId));
+  if(!entry){ showToast('Entry not found'); return; }
+  const detail = `${formatINR(entry.amount)} — ${entry.paymentMethod} — ${dateDisplay(entry.date)}`;
+  openPinModal(t('deleteConfirm'), detail, async()=>{
+    try{
+      await apiFetch('delete',{entryId:String(entryId), deletedBy:currentUser.name});
+      // Remove from local immediately
+      salesData = salesData.filter(s=>String(s.entryId)!==String(entryId));
+      if((entry.paymentMethod==='UPI'||entry.paymentMethod==='Cash+UPI') && entry.party && entry.party!=='Other'){
+        partyTxnData = partyTxnData.filter(t=>!(String(t.entryId)===String(entryId) && t.source==='Via Sale'));
+      }
+      lsSet('sales', salesData);
+      lsSet('partyTxn', partyTxnData);
+      renderAll();
+      showToast('✓ Deleted successfully');
+      // Background sync
+      setSyncing(true); refreshSales().then(()=>{renderAll();setSyncing(false);}).catch(()=>{setSyncing(false);});
+      refreshPartyTxns().then(()=>renderAll()).catch(()=>{});
+    }catch(e){
+      showToast('❌ Delete failed');
+    }
+  });
+}
+
+function editPartyTxn(entryId){
+  const tx = partyTxnData.find(t=>String(t.entryId)===String(entryId));
+  if(!tx){ showToast('Entry not found'); return; }
+  const overlay = document.getElementById('edit-overlay');
+  const area = document.getElementById('edit-form-area');
+  area.innerHTML = `
+    <div class="form-group"><label class="form-label">${t('amount')} (₹)</label><input type="number" id="edit-amount" value="${tx.amount}" inputmode="numeric"></div>
+    <div class="form-group"><label class="form-label">${t('note')}</label><div class="voice-input-row"><div class="voice-input-wrap"><textarea id="edit-note" rows="1" oninput="autoGrow(this);voiceClear('edit-note')">${esc(tx.note||'')}</textarea><button class="voice-clear-btn" id="edit-note-clear" onclick="clearVoiceInput('edit-note')">✕</button></div><div class="voice-mic-btn" onclick="toggleMic('edit-note')">🎤</div></div></div>
+    <div class="form-group"><label class="form-label">${t('date')}</label><input type="date" id="edit-date" value="${tx.date}"></div>
+    <button class="btn btn-gold" onclick="submitPtxnEdit('${entryId}')">${t('save')} 💾</button>
+  `;
+  overlay.classList.add('active');
+}
+
+function submitPtxnEdit(entryId){
+  const amount = document.getElementById('edit-amount').value;
+  const note = document.getElementById('edit-note').value;
+  const date = document.getElementById('edit-date').value;
+  openPinModal(t('enterPin'),'', async()=>{
+    try{
+      await apiFetch('editPartyTransaction',{entryId, amount, note, date, editedBy:currentUser.name});
+      // Update local immediately
+      const tx = partyTxnData.find(t=>String(t.entryId)===String(entryId));
+      if(tx){ tx.amount=Number(amount); tx.note=note; tx.date=date; tx.editedBy=currentUser.name; }
+      lsSet('partyTxn', partyTxnData);
+      closeEditOverlay();
+      renderPartyDetail(); renderParties();
+      showToast('✓ Edited successfully');
+      // Background sync
+      refreshPartyTxns().then(()=>{renderPartyDetail();renderParties();}).catch(()=>{});
+    }catch(e){
+      showToast('❌ Edit failed');
+    }
+  });
+}
+
+function deletePartyTxn(entryId){
+  const tx = partyTxnData.find(t=>String(t.entryId)===String(entryId));
+  if(!tx){ showToast('Entry not found'); return; }
+  const detail = `${formatINR(tx.amount)} — ${tx.type} — ${dateDisplay(tx.date)}`;
+  openPinModal(t('deleteConfirm'), detail, async()=>{
+    try{
+      await apiFetch('deletePartyTransaction',{entryId:String(entryId), deletedBy:currentUser.name});
+      // Remove from local immediately
+      partyTxnData = partyTxnData.filter(t=>String(t.entryId)!==String(entryId));
+      lsSet('partyTxn', partyTxnData);
+      renderPartyDetail(); renderParties();
+      showToast('✓ Deleted successfully');
+      // Background sync
+      refreshPartyTxns().then(()=>{renderPartyDetail();renderParties();}).catch(()=>{});
+    }catch(e){
+      showToast('❌ Delete failed');
+    }
+  });
+}
+
+// ══════════════════════════════════════
+// PIN MODAL (for edit/delete confirm)
+// ══════════════════════════════════════
+let modalPinBuffer = '';
+
+function openPinModal(title, detail, callback){
+  pinModalCallback = callback;
+  modalPinBuffer = '';
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-detail').textContent = detail;
+  document.getElementById('modal-error').textContent = '';
+  updateModalPinDots();
+  document.getElementById('pin-modal').classList.add('active');
+}
+
+function closePinModal(){
+  document.getElementById('pin-modal').classList.remove('active');
+  pinModalCallback = null;
+  modalPinBuffer = '';
+}
+
+function updateModalPinDots(){
+  document.querySelectorAll('#modal-pin-dots .pin-dot').forEach((dot,i)=>{
+    dot.classList.toggle('filled', i < modalPinBuffer.length);
+    dot.classList.remove('error');
+  });
+}
+
+// Modal keypad handler
+document.getElementById('modal-keypad').addEventListener('click', function(e){
+  const key = e.target.closest('.pin-key');
+  if(!key) return;
+  const val = key.dataset.mkey;
+  if(val==='back'){
+    modalPinBuffer = modalPinBuffer.slice(0,-1);
+    updateModalPinDots();
+    return;
+  }
+  if(val==='submit'){
+    if(modalPinBuffer.length===4) confirmPinModal();
+    return;
+  }
+  if(modalPinBuffer.length>=4) return;
+  modalPinBuffer += val;
+  updateModalPinDots();
+});
+
+async function confirmPinModal(){
+  if(modalPinBuffer.length!==4){
+    document.getElementById('modal-error').textContent = t('enterPin');
+    return;
+  }
+  const hash = await sha256(modalPinBuffer);
+  if(hash === currentUser.pinHash){
+    const cb = pinModalCallback;
+    closePinModal();
+    if(cb) cb();
+  } else {
+    document.getElementById('modal-error').textContent = t('wrongPin');
+    document.querySelectorAll('#modal-pin-dots .pin-dot').forEach(d=>d.classList.add('error'));
+    setTimeout(()=>{
+      modalPinBuffer = '';
+      updateModalPinDots();
+      document.getElementById('modal-error').textContent = '';
+    }, 1200);
+  }
+}
+
+// ══════════════════════════════════════
+// VOICE INPUT (Speech-to-Text)
+// ══════════════════════════════════════
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let activeRecognition = null;
+let activeInputId = null;
+
+function autoGrow(el){
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+function clearVoiceInput(inputId){
+  const el = document.getElementById(inputId);
+  el.value = '';
+  el.style.height = 'auto';
+  document.getElementById(inputId+'-clear').classList.remove('show');
+  el.focus();
+}
+
+function voiceClear(inputId){
+  const hasValue = document.getElementById(inputId).value.length > 0;
+  document.getElementById(inputId+'-clear').classList.toggle('show', hasValue);
+}
+
+function toggleMic(inputId){
+  if(!SpeechRecognition){
+    showToast('❌ Speech not supported — use Chrome');
+    return;
+  }
+
+  const inputEl = document.getElementById(inputId);
+  const micBtn = inputEl.closest('.voice-input-row').querySelector('.voice-mic-btn');
+
+  // If already listening on this input — stop
+  if(activeRecognition && activeInputId === inputId){
+    activeRecognition.stop();
+    return;
+  }
+
+  // If listening on another input — stop that first
+  if(activeRecognition){
+    activeRecognition.stop();
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'en-IN';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+
+  activeRecognition = recognition;
+  activeInputId = inputId;
+
+  micBtn.classList.add('listening');
+
+  let finalTranscript = inputEl.value;
+
+  recognition.onresult = function(event){
+    let interim = '';
+    for(let i = event.resultIndex; i < event.results.length; i++){
+      const transcript = event.results[i][0].transcript;
+      if(event.results[i].isFinal){
+        finalTranscript = (finalTranscript ? finalTranscript + ' ' : '') + transcript.trim();
+        inputEl.value = finalTranscript;
+      } else {
+        interim = transcript;
+      }
+    }
+    if(interim){
+      inputEl.value = (finalTranscript ? finalTranscript + ' ' : '') + interim;
+    }
+    autoGrow(inputEl);
+    voiceClear(inputId);
+  };
+
+  recognition.onend = function(){
+    micBtn.classList.remove('listening');
+    activeRecognition = null;
+    activeInputId = null;
+    voiceClear(inputId);
+  };
+
+  recognition.onerror = function(event){
+    micBtn.classList.remove('listening');
+    activeRecognition = null;
+    activeInputId = null;
+    if(event.error === 'no-speech'){
+      showToast('No speech detected — try again');
+    } else if(event.error === 'not-allowed'){
+      showToast('❌ Mic permission denied');
+    } else {
+      showToast('❌ Speech error: ' + event.error);
+    }
+  };
+
+  recognition.start();
+}
+
+// ══════════════════════════════════════
+// EXPORT
+// ══════════════════════════════════════
+function exportSummary(mode){
+  const selDate = document.getElementById('history-date').value || todayStr();
+  const entries = salesData.filter(s=>s.date===selDate);
+  const sales = entries.filter(s=>s.type==='Sale');
+  const expenses = entries.filter(s=>s.type==='Expense');
+
+  let saleTotal=0,saleCash=0,saleUpi=0,expTotal=0,expCash=0,expOnline=0;
+  sales.forEach(s=>{ saleTotal+=Number(s.amount); saleCash+=Number(s.cashAmount)||0; saleUpi+=Number(s.upiAmount)||0; });
+  expenses.forEach(s=>{ expTotal+=Number(s.amount); if(s.paymentMethod==='Cash') expCash+=Number(s.amount); else expOnline+=Number(s.amount); });
+
+  if(mode==='whatsapp'){
+    const net = saleTotal - expTotal;
+    let text = `*📊 दुकान खाता — ${dateDisplay(selDate)}*\n`;
+    text += `━━━━━━━━━━━━━━━━\n\n`;
+
+    // Summary on top with breakdown
+    text += `✅ *कुल बिक्री: ${formatINR(saleTotal)}*\n`;
+    text += `  नकद: ${formatINR(saleCash)} | UPI: ${formatINR(saleUpi)}\n\n`;
+    text += `❌ *कुल खर्चा: ${formatINR(expTotal)}*\n`;
+    text += `  नकद: ${formatINR(expCash)} | ऑनलाइन: ${formatINR(expOnline)}\n\n`;
+    text += `💰 *शुद्ध (Net): ${formatINR(net)}*\n\n`;
+
+    // Sales breakdown
+    if(sales.length){
+      text += `━━━━━━━━━━━━━━━━\n`;
+      text += `*बिक्री / Sales (${sales.length}):*\n\n`;
+      sales.forEach((s,i)=>{
+        text += `  ${i+1}. ${formatINR(s.amount)} · ${s.paymentMethod}`;
+        if(s.party) text += ` · ${s.party}`;
+        if(s.description) text += ` — _${s.description}_`;
+        text += `\n`;
+      });
+      text += `\n✅ *कुल बिक्री: ${formatINR(saleTotal)}*\n`;
+      text += `  नकद: ${formatINR(saleCash)} | UPI: ${formatINR(saleUpi)}\n\n`;
+    }
+
+    // Expense breakdown
+    if(expenses.length){
+      text += `━━━━━━━━━━━━━━━━\n`;
+      text += `*खर्चा / Expenses (${expenses.length}):*\n\n`;
+      expenses.forEach((s,i)=>{
+        text += `  ${i+1}. ${formatINR(s.amount)} · ${s.paymentMethod}`;
+        if(s.description) text += ` — _${s.description}_`;
+        text += `\n`;
+      });
+      text += `\n❌ *कुल खर्चा: ${formatINR(expTotal)}*\n`;
+      text += `  नकद: ${formatINR(expCash)} | ऑनलाइन: ${formatINR(expOnline)}\n\n`;
+    }
+
+    text += `━━━━━━━━━━━━━━━━\n`;
+    text += `_— Shop Ledger_`;
+
+    const encoded = encodeURIComponent(text);
+    window.open('https://wa.me/?text=' + encoded, '_blank');
+    return;
+  }
+
+  if(mode==='pdf'){
+    exportAsPdf(selDate, sales, expenses, saleTotal, saleCash, saleUpi, expTotal, expCash, expOnline);
+  }
+}
+
+function exportAsPdf(selDate, sales, expenses, saleTotal, saleCash, saleUpi, expTotal, expCash, expOnline){
+  const net = saleTotal - expTotal;
+  const netColor = net >= 0 ? '#059669' : '#DC2626';
+
+  let salesRows = '';
+  sales.forEach((s,i)=>{
+    salesRows += `<tr>
+      <td style="padding:8px 10px;border-bottom:1px solid #E5E7EB;font-size:13px;color:#6B7280">${i+1}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #E5E7EB;font-size:14px;font-weight:700;color:#059669">${formatINR(s.amount)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #E5E7EB;font-size:13px">${s.paymentMethod}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #E5E7EB;font-size:13px">${esc(s.party)||'—'}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #E5E7EB;font-size:12px;color:#6B7280;font-style:italic">${s.description||''}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #E5E7EB;font-size:11px;color:#9CA3AF">${esc(s.addedBy)||''}</td>
+    </tr>`;
+  });
+
+  let expRows = '';
+  expenses.forEach((s,i)=>{
+    expRows += `<tr>
+      <td style="padding:8px 10px;border-bottom:1px solid #E5E7EB;font-size:13px;color:#6B7280">${i+1}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #E5E7EB;font-size:14px;font-weight:700;color:#DC2626">${formatINR(s.amount)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #E5E7EB;font-size:13px">${s.paymentMethod}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #E5E7EB;font-size:12px;color:#6B7280;font-style:italic" colspan="2">${s.description||''}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #E5E7EB;font-size:11px;color:#9CA3AF">${esc(s.addedBy)||''}</td>
+    </tr>`;
+  });
+
+  const html = `
+  <div style="max-width:600px;margin:0 auto;font-family:'DM Sans',system-ui,sans-serif;color:#1A1D26">
+    
+    <div style="text-align:center;padding:20px 0 16px;border-bottom:2px solid #059669">
+      <div style="font-size:24px;font-weight:700;color:#059669">💰 Shop Ledger</div>
+      <div style="font-size:16px;color:#374151;margin-top:4px">Daily Summary — ${dateDisplay(selDate)}</div>
+    </div>
+
+    <!-- SUMMARY ON TOP -->
+    <div style="display:flex;gap:12px;margin:20px 0 12px">
+      <div style="flex:1;background:#F0FDF4;border-radius:12px;padding:16px;text-align:center;border:1px solid #A7F3D0">
+        <div style="font-size:12px;color:#059669;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Total Sale</div>
+        <div style="font-size:24px;font-weight:700;color:#059669;margin:6px 0">${formatINR(saleTotal)}</div>
+        <div style="font-size:11px;color:#6B7280">Cash ${formatINR(saleCash)}</div>
+        <div style="font-size:11px;color:#6B7280">UPI ${formatINR(saleUpi)}</div>
+      </div>
+      <div style="flex:1;background:#FEF2F2;border-radius:12px;padding:16px;text-align:center;border:1px solid #FECACA">
+        <div style="font-size:12px;color:#DC2626;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Total Expense</div>
+        <div style="font-size:24px;font-weight:700;color:#DC2626;margin:6px 0">${formatINR(expTotal)}</div>
+        <div style="font-size:11px;color:#6B7280">Cash ${formatINR(expCash)}</div>
+        <div style="font-size:11px;color:#6B7280">Online ${formatINR(expOnline)}</div>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:14px;background:#F8FAF9;border-radius:10px;margin-bottom:24px;border:1px solid #E5E7EB">
+      <span style="font-size:14px;color:#6B7280">Net (शुद्ध): </span>
+      <span style="font-size:22px;font-weight:700;color:${netColor}">${formatINR(net)}</span>
+    </div>
+
+    <!-- SALES BREAKDOWN -->
+    ${sales.length ? `
+    <div style="margin-bottom:20px">
+      <div style="font-size:14px;font-weight:700;color:#059669;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #A7F3D0">SALES BREAKDOWN — ${sales.length} entries</div>
+      <table style="width:100%;border-collapse:collapse">
+        <tr style="background:#F8FAF9">
+          <th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600">#</th>
+          <th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600">Amount</th>
+          <th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600">Method</th>
+          <th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600">Party</th>
+          <th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600">Description</th>
+          <th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600">By</th>
+        </tr>
+        ${salesRows}
+        <tr style="background:#F0FDF4;font-weight:700">
+          <td style="padding:8px 10px;font-size:13px" colspan="1"></td>
+          <td style="padding:8px 10px;font-size:14px;color:#059669">${formatINR(saleTotal)}</td>
+          <td style="padding:8px 10px;font-size:11px;color:#6B7280" colspan="4">Cash: ${formatINR(saleCash)} · UPI: ${formatINR(saleUpi)}</td>
+        </tr>
+      </table>
+    </div>` : ''}
+
+    <!-- EXPENSE BREAKDOWN -->
+    ${expenses.length ? `
+    <div style="margin-bottom:20px">
+      <div style="font-size:14px;font-weight:700;color:#DC2626;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #FECACA">EXPENSE BREAKDOWN — ${expenses.length} entries</div>
+      <table style="width:100%;border-collapse:collapse">
+        <tr style="background:#F8FAF9">
+          <th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600">#</th>
+          <th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600">Amount</th>
+          <th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600">Method</th>
+          <th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600" colspan="2">Description</th>
+          <th style="padding:8px 10px;text-align:left;font-size:11px;color:#6B7280;font-weight:600">By</th>
+        </tr>
+        ${expRows}
+        <tr style="background:#FEF2F2;font-weight:700">
+          <td style="padding:8px 10px;font-size:13px" colspan="1"></td>
+          <td style="padding:8px 10px;font-size:14px;color:#DC2626">${formatINR(expTotal)}</td>
+          <td style="padding:8px 10px;font-size:11px;color:#6B7280" colspan="4">Cash: ${formatINR(expCash)} · Online: ${formatINR(expOnline)}</td>
+        </tr>
+      </table>
+    </div>` : ''}
+
+    <div style="text-align:center;font-size:10px;color:#9CA3AF;margin-top:16px;padding-top:12px;border-top:1px solid #E5E7EB">
+      Generated by Shop Ledger · ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})}
+    </div>
+  </div>`;
+
+  showToast('Opening PDF...');
+  const printWindow = window.open('', '_blank');
+  if(!printWindow){
+    showToast('❌ Popup blocked — allow popups');
+    return;
+  }
+  printWindow.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Shop Ledger — ${dateDisplay(selDate)}</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body{margin:0;padding:24px;background:#fff}
+      @media print{body{padding:12px} @page{margin:10mm}}
+    </style>
+  </head><body>${html}
+    <script>setTimeout(function(){window.print();},500)<\/script>
+  </body></html>`);
+  printWindow.document.close();
+}
+
+// ══════════════════════════════════════
+// SETUP / SETTINGS
+// ══════════════════════════════════════
+function toggleSetup(){
+  const el = document.getElementById('setup-screen');
+  el.classList.toggle('active');
+  document.getElementById('setup-detail-area').innerHTML = '';
+}
+
+function toggleLanguage(){
+  lang = lang==='en'?'hi':'en';
+  lsSet('lang', lang);
+  updateI18n();
+  document.getElementById('lang-value').textContent = lang==='en'?'English':'हिंदी';
+  renderAll();
+}
+
+async function showLogs(){
+  const area = document.getElementById('setup-detail-area');
+  area.innerHTML = '<div class="loading"><div class="spinner"></div><br>Loading...</div>';
+  try{
+    const logs = await apiFetch('readLogs');
+    if(!logs.length){
+      area.innerHTML = `<div class="empty-state">${t('noEntries')}</div>`;
+      return;
+    }
+    area.innerHTML = logs.slice(0,100).map(l=>
+      `<div class="log-item"><div>${l.user} — ${l.action}</div><div style="color:var(--muted);font-size:12px">${l.details||''}</div><div class="log-time">${l.timestamp}</div></div>`
+    ).join('');
+  }catch(e){
+    area.innerHTML = '<div style="color:var(--red);padding:20px">Failed to load logs</div>';
+  }
+}
+
+function showInstructions(){
+  const area = document.getElementById('setup-detail-area');
+  area.innerHTML = `<div class="card" style="font-size:14px;line-height:1.9;white-space:pre-wrap">📖 <b>दुकान खाता — पूरी जानकारी</b>
+
+━━━━━━━━━━━━━━━━━━━━━━━
+⚡ <b>घबराएं नहीं!</b>
+कोई भी गलत बटन दबने से कुछ नहीं होगा।
+कोई भी एंट्री बदलने या हटाने के लिए
+<b>पिन डालना जरूरी</b> है। बिना पिन कुछ नहीं बदलेगा।
+━━━━━━━━━━━━━━━━━━━━━━━
+
+📱 <b>ऐप की बनावट (3 टैब):</b>
+
+1️⃣ <b>Sales (बिक्री)</b> — बिक्री और खर्चा जोड़ें
+2️⃣ <b>Parties (पार्टियां)</b> — पार्टियों का उधार हिसाब
+3️⃣ <b>Records (लेन-देन)</b> — आज का सारांश और पूरा रिकॉर्ड
+
+ऊपर दाहिनी तरफ:
+• <b>↻</b> = ताज़ा डेटा लाएं (Refresh / रिफ्रेश)
+• <b>⚙️</b> = सेटिंग्स (भाषा, लॉगआउट, निर्देश)
+
+━━━━━━━━━━━━━━━━━━━━━━━
+
+🔐 <b>पहली बार ऐप खोलें:</b>
+1. मास्टर पिन डालें (4 अंक) — पहली बार 4-5 सेकंड लगेगा
+2. अपना नाम लिखें
+3. अपना पर्सनल पिन सेट करें (4 अंक)
+4. पिन दोबारा डालकर पक्का करें
+✅ लॉगिन हो गया!
+
+🔐 <b>अगली बार:</b>
+— सीधे अपना पिन डालें → तुरंत लॉगिन
+— परिवार का कोई भी सदस्य अपने पिन से लॉगिन कर सकता है
+
+━━━━━━━━━━━━━━━━━━━━━━━
+📌 <b>टैब 1 — Sales (बिक्री)</b>
+━━━━━━━━━━━━━━━━━━━━━━━
+
+🟢 <b>"+ Add Sale" (बिक्री जोड़ें):</b>
+1. Sales टैब पर जाएं
+2. <b>"+ Add Sale" (+ बिक्री जोड़ें)</b> चुनें
+3. राशि (Amount) डालें — ₹
+4. जमा करने का तरीका (Payment Method) चुनें:
+   • <b>Cash (नकद)</b> — सिर्फ कैश बिक्री
+   • <b>UPI</b> — ऑनलाइन पेमेंट, पार्टी चुनना जरूरी
+   • <b>Cash+UPI</b> — दोनों का हिस्सा अलग-अलग डालें
+5. UPI चुनने पर <b>"Online Payment To / Party"</b> में पार्टी चुनें
+   → पार्टी खाते में "उधार दिया" एंट्री अपने आप बन जाएगी
+6. विवरण (Description) लिखें — ज़रूरी नहीं
+7. तारीख (Date) — आज अपने आप आती है, पुरानी भी डाल सकते हैं
+8. <b>"Save 💾" (सेव करें)</b> दबाएं → तुरंत "Saved" दिखेगा
+
+🔴 <b>"− Add Expense" (खर्चा जोड़ें):</b>
+1. Sales टैब पर <b>"− Add Expense" (− खर्चा जोड़ें)</b> चुनें
+2. राशि डालें
+3. तरीका चुनें — <b>Cash (नकद)</b> / <b>Online (ऑनलाइन)</b>
+4. विवरण लिखें
+5. <b>"Save 💾"</b> दबाएं
+
+━━━━━━━━━━━━━━━━━━━━━━━
+📌 <b>टैब 2 — Parties (पार्टियां)</b>
+━━━━━━━━━━━━━━━━━━━━━━━
+
+🔍 <b>पार्टी खोजें:</b>
+— ऊपर सर्च बार में नाम लिखें → फिल्टर हो जाएगा
+
+➕ <b>नई पार्टी जोड़ें:</b>
+1. <b>➕</b> बटन दबाएं (दाहिनी तरफ)
+2. पार्टी का नाम लिखें → <b>"Add" (जोड़ें)</b> दबाएं
+✅ पार्टी बन गई!
+
+🔴 <b>"− Credit Given" (− उधार दिया):</b>
+पार्टी को सामान या पैसा उधार दिया
+1. पार्टी के नाम पर टैप करें
+2. <b>"− उधार दिया" / "− Credit Given"</b> (लाल) बटन दबाएं
+3. राशि और तरीका (Cash / UPI) भरें
+4. <b>"Save 💾"</b> दबाएं
+→ बैलेंस बढ़ेगा (पार्टी से पैसे लेने हैं)
+
+🟢 <b>"+ Payment Received" (+ वापसी आई):</b>
+पार्टी ने पैसे वापस किए
+1. पार्टी के नाम पर टैप करें
+2. <b>"+ वापसी आई" / "+ Payment Received"</b> (हरा) बटन दबाएं
+3. राशि भरें → <b>"Save 💾"</b> दबाएं
+→ बैलेंस कम होगा
+
+💰 <b>पार्टी बैलेंस समझें:</b>
+— <b>लाल (−₹)</b> = पार्टी से इतने पैसे लेने हैं (उधार बाकी)
+— <b>हरा (+₹)</b> = पार्टी के इतने पैसे आपके पास हैं (ज्यादा ले लिए)
+— <b>₹0</b> = हिसाब बराबर, कोई उधार नहीं
+
+🗑️ <b>पार्टी हटाएं:</b>
+— पहले बैलेंस ₹0 करें
+— <b>"🗑️ Delete Party" (पार्टी हटाएं)</b> दबाएं → पिन डालें
+
+━━━━━━━━━━━━━━━━━━━━━━━
+📌 <b>टैब 3 — Records (लेन-देन)</b>
+━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 <b>आज का सारांश (Today's Summary):</b>
+— कुल बिक्री (हरा +) और कुल खर्चा (लाल −)
+— नकद और UPI का अलग-अलग हिसाब
+— शुद्ध (Net) = बिक्री − खर्चा
+
+📋 <b>एंट्री देखें:</b>
+— आज और कल की एंट्री अपने आप दिखती हैं
+— पुरानी तारीख देखने के लिए: <b>"View Date" (तारीख चुनें)</b> पर टैप करें
+
+✏️ <b>एंट्री बदलें (Edit):</b>
+1. एंट्री के पास <b>✏️</b> बटन दबाएं
+2. नई राशि / विवरण / तारीख डालें
+3. <b>पिन डालें</b> → बदलाव सेव होगा
+⚠️ UPI वाली एंट्री बदल नहीं सकते — पहले हटाएं, फिर नई डालें
+
+✕ <b>एंट्री हटाएं (Delete):</b>
+1. एंट्री के पास <b>✕</b> बटन दबाएं
+2. <b>पिन डालें</b> → एंट्री हट जाएगी
+— UPI बिक्री हटाने पर पार्टी की एंट्री भी अपने आप हट जाएगी
+
+⟳ <b>"Syncing..." दिखे तो:</b>
+— डेटा शीट से लोड हो रहा है, थोड़ा रुकें
+— Syncing हटने पर डेटा 100% पक्का है
+
+📄 <b>सारांश शेयर करें:</b>
+<b>"📄 Export Today's Summary"</b> बटन दबाएं
+→ टेक्स्ट कॉपी करें या WhatsApp पर भेजें
+
+━━━━━━━━━━━━━━━━━━━━━━━
+⚙️ <b>सेटिंग्स</b>
+━━━━━━━━━━━━━━━━━━━━━━━
+
+• <b>↻ Refresh (रिफ्रेश)</b> — ताज़ा डेटा शीट से लाएं
+  (जब दूसरे फोन से कुछ जोड़ा हो तो दबाएं)
+• <b>Language (भाषा)</b> — English / हिंदी बदलें
+• <b>Activity Log (गतिविधि लॉग)</b> — किसने क्या किया देखें
+• <b>Logout (लॉगआउट)</b> — बाहर निकलें, दोबारा पिन से लॉगिन करें
+
+━━━━━━━━━━━━━━━━━━━━━━━
+💡 <b>ज़रूरी बातें:</b>
+━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ सारा डेटा Google Sheet में सुरक्षित रहता है
+✅ कोई भी फोन से लॉगिन कर सकता है (पिन चाहिए)
+✅ हर एंट्री में लिखा रहता है किसने जोड़ा / बदला
+✅ गलती से कुछ नहीं बदलेगा — हर बदलाव में पिन जरूरी
+✅ ऐप खोलने पर अपने आप ताज़ा डेटा आ जाता है
+✅ दूसरे फोन से जोड़ा डेटा भी दिखता है (ऐप वापस खोलें)
+✅ तारीख रात 12 बजे अपने आप बदल जाती है
+⚠️ इंटरनेट जरूरी है (डेटा ऑनलाइन शीट में जाता है)</div>`;
+}
+
+// ══════════════════════════════════════
+// AUTO DATE REFRESH
+// ══════════════════════════════════════
+function refreshDates(){
+  document.getElementById('sale-date').value = todayStr();
+  document.getElementById('ptxn-date').value = todayStr();
+  document.getElementById('history-date').value = todayStr();
+}
+
+// When user returns to app (unlocks phone, switches back from another app)
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden && currentUser){
+    refreshDates();
+    // Full refresh from Sheet — picks up changes from other devices
+    setSyncing(true);
+    loadAllData().then(()=>{
+      populatePartyDropdown();
+      renderAll();
+      setSyncing(false);
+    }).catch(()=>{
+      setSyncing(false);
+    });
+  }
+});
+
+// ══════════════════════════════════════
+// STARTUP
+// ══════════════════════════════════════
+(function(){
+  // Check if session exists
+  const session = sessionStorage.getItem('sl_user');
+  if(session){
+    try{
+      currentUser = JSON.parse(session);
+      document.getElementById('pin-screen').classList.remove('active');
+      document.getElementById('app').style.display = 'flex';
+      document.getElementById('user-badge').textContent = currentUser.name;
+      initApp();
+      return;
+    }catch(e){}
+  }
+  initPinSystem();
+})();
+</script>
+</body>
+</html>
