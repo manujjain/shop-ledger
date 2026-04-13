@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Speech-to-Text Test</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F8FAF9;--card:#ffffff;--text:#1A1D26;--muted:#6B7280;
+  --green:#059669;--red:#DC2626;--border:#E5E7EB;--accent:#059669;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);padding:20px;max-width:420px;margin:0 auto}
+h2{font-size:18px;margin-bottom:16px;color:var(--accent)}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;color:var(--muted);font-weight:600;margin-bottom:6px}
+.input-row{display:flex;gap:6px;align-items:center}
+.input-wrap{flex:1;position:relative}
+.input-wrap input{width:100%;padding:12px 36px 12px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;font-family:inherit;outline:none}
+.input-wrap input:focus{border-color:var(--accent)}
+.clear-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;background:var(--border);border:none;cursor:pointer;font-size:13px;color:var(--muted);display:none;align-items:center;justify-content:center;font-weight:700}
+.clear-btn.show{display:flex}
+.clear-btn:active{background:#D1D5DB}
+.mic-btn{width:44px;height:44px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:.15s;font-size:20px}
+.mic-btn:active{transform:scale(.93)}
+.mic-btn.listening{border-color:var(--red);background:#FEF2F2;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.status{font-size:12px;color:var(--muted);margin-top:6px;min-height:18px}
+.status.error{color:var(--red)}
+.status.listening{color:var(--red);font-weight:600}
+.card{background:var(--card);border-radius:14px;border:1px solid var(--border);padding:18px;margin-bottom:16px}
+.result{font-size:14px;color:var(--text);margin-top:8px;padding:10px;background:var(--bg);border-radius:8px;min-height:40px;word-break:break-word}
+.note{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.6}
+.lang-toggle{display:flex;gap:8px;margin-bottom:16px}
+.lang-btn{flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);font-size:14px;font-weight:600;cursor:pointer;text-align:center;font-family:inherit}
+.lang-btn.active{border-color:var(--accent);background:#ECFDF5;color:var(--accent)}
+.lang-btn:active{transform:scale(.97)}
+</style>
+</head>
+<body>
+
+<h2>🎤 Speech-to-Text Test</h2>
+
+<div class="lang-toggle">
+  <div class="lang-btn active" id="lang-en" onclick="setLang('en')">English + Hinglish</div>
+  <div class="lang-btn" id="lang-hi" onclick="setLang('hi')">हिंदी</div>
+</div>
+
+<div class="card">
+  <div class="form-group">
+    <label class="form-label" id="label1">Description (विवरण)</label>
+    <div class="input-row">
+      <div class="input-wrap">
+        <input type="text" id="desc1" placeholder="Speak or type..." oninput="toggleClear('desc1','clear1')">
+        <button class="clear-btn" id="clear1" onclick="clearInput('desc1','clear1')">✕</button>
+      </div>
+      <div class="mic-btn" id="mic1" onclick="toggleMic('desc1','mic1','status1')">🎤</div>
+    </div>
+    <div class="status" id="status1"></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="form-group">
+    <label class="form-label" id="label2">Note (नोट)</label>
+    <div class="input-row">
+      <div class="input-wrap">
+        <input type="text" id="desc2" placeholder="Speak or type..." oninput="toggleClear('desc2','clear2')">
+        <button class="clear-btn" id="clear2" onclick="clearInput('desc2','clear2')">✕</button>
+      </div>
+      <div class="mic-btn" id="mic2" onclick="toggleMic('desc2','mic2','status2')">🎤</div>
+    </div>
+    <div class="status" id="status2"></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="form-group">
+    <label class="form-label" id="phrases-label">Try these phrases:</label>
+    <div class="note" id="phrases">
+      • "Raju ka cement"<br>
+      • "Wholesale order"<br>
+      • "Chai patti laya"<br>
+      • "Steel ka payment"<br>
+      • "Labour charge"<br>
+      • "दो बोरी सीमेंट"
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="form-label">Browser Support</div>
+  <div class="result" id="support-check"></div>
+</div>
+
+<script>
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const supportEl = document.getElementById('support-check');
+
+if(!SpeechRecognition){
+  supportEl.innerHTML = '❌ Speech Recognition NOT supported. Use Chrome or Edge.';
+  supportEl.style.color = '#DC2626';
+} else {
+  supportEl.innerHTML = '✅ Speech Recognition supported!';
+  supportEl.style.color = '#059669';
+}
+
+let activeRecognition = null;
+let activeInputId = null;
+let speechLang = 'en-IN';
+
+function setLang(l){
+  speechLang = l === 'hi' ? 'hi-IN' : 'en-IN';
+  document.getElementById('lang-en').className = 'lang-btn' + (l==='en'?' active':'');
+  document.getElementById('lang-hi').className = 'lang-btn' + (l==='hi'?' active':'');
+
+  if(l==='hi'){
+    document.getElementById('label1').textContent = 'विवरण (Description)';
+    document.getElementById('label2').textContent = 'नोट (Note)';
+    document.getElementById('desc1').placeholder = 'बोलें या लिखें...';
+    document.getElementById('desc2').placeholder = 'बोलें या लिखें...';
+    document.getElementById('phrases-label').textContent = 'ये बोलकर देखें:';
+    document.getElementById('phrases').innerHTML = '• "राजू का सीमेंट"<br>• "होलसेल ऑर्डर"<br>• "चाय पत्ती लाया"<br>• "स्टील का पेमेंट"<br>• "लेबर चार्ज"<br>• "दो बोरी सीमेंट"';
+  } else {
+    document.getElementById('label1').textContent = 'Description (विवरण)';
+    document.getElementById('label2').textContent = 'Note (नोट)';
+    document.getElementById('desc1').placeholder = 'Speak or type...';
+    document.getElementById('desc2').placeholder = 'Speak or type...';
+    document.getElementById('phrases-label').textContent = 'Try these phrases:';
+    document.getElementById('phrases').innerHTML = '• "Raju ka cement"<br>• "Wholesale order"<br>• "Chai patti laya"<br>• "Steel ka payment"<br>• "Labour charge"<br>• "दो बोरी सीमेंट"';
+  }
+}
+
+function clearInput(inputId, clearId){
+  document.getElementById(inputId).value = '';
+  document.getElementById(clearId).classList.remove('show');
+  document.getElementById(inputId).focus();
+}
+
+function toggleClear(inputId, clearId){
+  const hasValue = document.getElementById(inputId).value.length > 0;
+  document.getElementById(clearId).classList.toggle('show', hasValue);
+}
+
+function toggleMic(inputId, micId, statusId){
+  if(!SpeechRecognition){
+    document.getElementById(statusId).textContent = '❌ Not supported — use Chrome';
+    document.getElementById(statusId).className = 'status error';
+    return;
+  }
+
+  const micBtn = document.getElementById(micId);
+  const statusEl = document.getElementById(statusId);
+  const inputEl = document.getElementById(inputId);
+  const clearBtn = document.getElementById(inputId === 'desc1' ? 'clear1' : 'clear2');
+
+  if(activeRecognition && activeInputId === inputId){
+    activeRecognition.stop();
+    return;
+  }
+
+  if(activeRecognition){
+    activeRecognition.stop();
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = speechLang;
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+
+  activeRecognition = recognition;
+  activeInputId = inputId;
+
+  micBtn.classList.add('listening');
+  statusEl.textContent = speechLang === 'hi-IN' ? '🔴 सुन रहा है... बोलिए' : '🔴 Listening... speak now';
+  statusEl.className = 'status listening';
+
+  let finalTranscript = inputEl.value;
+
+  recognition.onresult = function(event){
+    let interim = '';
+    for(let i = event.resultIndex; i < event.results.length; i++){
+      const transcript = event.results[i][0].transcript;
+      if(event.results[i].isFinal){
+        finalTranscript = (finalTranscript ? finalTranscript + ' ' : '') + transcript.trim();
+        inputEl.value = finalTranscript;
+      } else {
+        interim = transcript;
+      }
+    }
+    if(interim){
+      inputEl.value = (finalTranscript ? finalTranscript + ' ' : '') + interim;
+    }
+    toggleClear(inputId, inputId === 'desc1' ? 'clear1' : 'clear2');
+  };
+
+  recognition.onend = function(){
+    micBtn.classList.remove('listening');
+    statusEl.textContent = inputEl.value ? '✅ Done' : '';
+    statusEl.className = 'status';
+    activeRecognition = null;
+    activeInputId = null;
+    toggleClear(inputId, inputId === 'desc1' ? 'clear1' : 'clear2');
+    setTimeout(()=>{ if(statusEl.textContent === '✅ Done') statusEl.textContent = ''; }, 2000);
+  };
+
+  recognition.onerror = function(event){
+    micBtn.classList.remove('listening');
+    activeRecognition = null;
+    activeInputId = null;
+    if(event.error === 'no-speech'){
+      statusEl.textContent = speechLang === 'hi-IN' ? 'कुछ सुनाई नहीं दिया — फिर बोलें' : 'No speech detected — try again';
+      statusEl.className = 'status';
+    } else if(event.error === 'not-allowed'){
+      statusEl.textContent = speechLang === 'hi-IN' ? '❌ माइक की अनुमति नहीं — सेटिंग्स में जाएं' : '❌ Mic permission denied — check settings';
+      statusEl.className = 'status error';
+    } else {
+      statusEl.textContent = '❌ Error: ' + event.error;
+      statusEl.className = 'status error';
+    }
+  };
+
+  recognition.start();
+}
+</script>
+</body>
+</html>
