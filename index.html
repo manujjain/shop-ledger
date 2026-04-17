@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice Pipeline Test</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAFAF9;--card:#FFF;--green:#059669;--green-soft:#F0FDF4;--red:#DC2626;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--purple:#7C3AED;--purple-soft:#F5F3FF;--blue:#2563EB;--blue-soft:#EFF6FF;--amber:#D97706;--amber-soft:#FFFBEB}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:16px}
+.container{max-width:540px;margin:0 auto}
+h1{font-size:20px;font-weight:700;color:var(--green);text-align:center;margin-bottom:2px}
+.sub{font-size:12px;color:var(--muted);text-align:center;margin-bottom:20px}
+.num{font-family:'Inter','DM Sans',sans-serif;font-feature-settings:'tnum'}
+
+.key-row{display:flex;gap:8px;margin-bottom:12px}
+.key-section{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;flex:1}
+.key-section label{font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
+.key-section input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:monospace}
+
+.mic-area{display:flex;flex-direction:column;align-items:center;gap:12px;margin:20px 0}
+.mic-btn{width:90px;height:90px;border-radius:50%;border:2px solid var(--green);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.3s;background:var(--green-soft)}
+.mic-btn svg{width:36px;height:36px;color:var(--green);transition:.3s}
+.mic-btn.recording{background:#FEE2E2;border-color:var(--red);animation:pulse 1.5s infinite}
+.mic-btn.recording svg{color:var(--red)}
+.mic-status{font-size:13px;font-weight:600;min-height:18px;text-align:center}
+.mic-status.listening{color:var(--red)}
+.mic-status.done{color:var(--green)}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+
+.lang-toggle{display:flex;gap:6px;justify-content:center;margin-bottom:16px}
+.lang-btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--card);font-size:12px;font-weight:600;cursor:pointer}
+.lang-btn.active{background:var(--green);color:#fff;border-color:var(--green)}
+
+.pipeline{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;display:none}
+.pipeline-hdr{padding:12px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+.pipeline-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.pipeline-name{font-size:13px;font-weight:700;flex:1}
+.pipeline-time{font-size:13px;font-weight:700;font-family:'Inter',sans-serif}
+.pipeline-body{padding:14px}
+
+.step{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+.step:last-child{margin-bottom:0}
+.step-line{width:2px;background:var(--border);flex-shrink:0;min-height:40px;margin-left:4px;margin-top:4px;position:relative}
+.step-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.step-content{flex:1;min-width:0}
+.step-header{display:flex;justify-content:space-between;align-items:center}
+.step-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.step-time{font-size:11px;font-weight:700;font-family:'Inter',sans-serif}
+.step-text{font-size:14px;margin-top:4px;line-height:1.5;word-wrap:break-word}
+.step-text.mono{font-size:12px;font-family:monospace;background:var(--bg);padding:8px 10px;border-radius:6px;white-space:pre-wrap;overflow-x:auto;max-height:200px;overflow-y:auto}
+.step-text.error{color:var(--red)}
+
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top:2px solid var(--green);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.json-field{display:flex;justify-content:space-between;padding:2px 0;font-size:12px}
+.json-key{color:var(--muted)}
+.json-val{font-weight:600;text-align:right;max-width:60%}
+.json-val.green{color:var(--green)}
+.json-val.red{color:var(--red)}
+.json-val.blue{color:var(--blue)}
+
+.tips{background:var(--amber-soft);border:1px solid #FDE68A;border-radius:10px;padding:14px;margin-top:16px}
+.tips h3{font-size:13px;font-weight:700;color:#92400E;margin-bottom:8px}
+.tips p{font-size:12px;color:#92400E;line-height:1.6}
+
+.phrases{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:12px}
+.phrases h3{font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px}
+.phrase{font-size:12px;color:var(--text);padding:6px 0;border-bottom:1px solid #F3F4F6;line-height:1.5}
+.phrase:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🎤 Voice → Sale Pipeline Test</h1>
+  <div class="sub">Compare full pipeline: Speech-to-Text → Parse → JSON</div>
+
+  <div class="key-row">
+    <div class="key-section">
+      <label>Groq API Key</label>
+      <input type="password" id="groq-key" placeholder="gsk_..." oninput="localStorage.setItem('groq_key2',this.value)">
+    </div>
+  </div>
+
+  <div class="lang-toggle">
+    <button class="lang-btn active" onclick="setLang('hi')" id="lang-hi">हिंदी</button>
+    <button class="lang-btn" onclick="setLang('en')" id="lang-en">English</button>
+    <button class="lang-btn" onclick="setLang('')" id="lang-auto">Auto</button>
+  </div>
+
+  <div class="mic-area">
+    <button class="mic-btn" id="mic-btn" onclick="toggleRecording()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+    </button>
+    <div class="mic-status" id="mic-status">Tap to start recording</div>
+  </div>
+
+  <!-- Pipeline A: Groq Whisper → Groq Llama -->
+  <div class="pipeline" id="pipeline-groq">
+    <div class="pipeline-hdr">
+      <div class="pipeline-dot" style="background:var(--purple)"></div>
+      <div class="pipeline-name">Pipeline A: Groq Whisper → Groq Llama</div>
+      <div class="pipeline-time num" id="groq-total" style="color:var(--purple)"></div>
+    </div>
+    <div class="pipeline-body">
+      <div class="step">
+        <div class="step-dot" style="background:var(--purple-soft);border:2px solid var(--purple)"></div>
+        <div class="step-content">
+          <div class="step-header">
+            <span class="step-label">Step 1: Whisper STT</span>
+            <span class="step-time num" id="groq-stt-time" style="color:var(--purple)"></span>
+          </div>
+          <div class="step-text" id="groq-stt-text"></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot" style="background:var(--purple-soft);border:2px solid var(--purple)"></div>
+        <div class="step-content">
+          <div class="step-header">
+            <span class="step-label">Step 2: Llama Parse</span>
+            <span class="step-time num" id="groq-parse-time" style="color:var(--purple)"></span>
+          </div>
+          <div id="groq-parse-result"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipeline B: Chrome Speech → Groq Llama -->
+  <div class="pipeline" id="pipeline-chrome">
+    <div class="pipeline-hdr">
+      <div class="pipeline-dot" style="background:var(--blue)"></div>
+      <div class="pipeline-name">Pipeline B: Chrome Speech → Groq Llama</div>
+      <div class="pipeline-time num" id="chrome-total" style="color:var(--blue)"></div>
+    </div>
+    <div class="pipeline-body">
+      <div class="step">
+        <div class="step-dot" style="background:var(--blue-soft);border:2px solid var(--blue)"></div>
+        <div class="step-content">
+          <div class="step-header">
+            <span class="step-label">Step 1: Chrome STT</span>
+            <span class="step-time num" id="chrome-stt-time" style="color:var(--blue)"></span>
+          </div>
+          <div class="step-text" id="chrome-stt-text"></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot" style="background:var(--blue-soft);border:2px solid var(--blue)"></div>
+        <div class="step-content">
+          <div class="step-header">
+            <span class="step-label">Step 2: Llama Parse</span>
+            <span class="step-time num" id="chrome-parse-time" style="color:var(--blue)"></span>
+          </div>
+          <div id="chrome-parse-result"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tips">
+    <h3>What's being compared</h3>
+    <p>Both pipelines use the <strong>same Groq Llama parser</strong> — the only difference is how speech becomes text.<br><br>
+    🟣 <strong>Pipeline A:</strong> Groq Whisper (API call) → Groq Llama → JSON<br>
+    🔵 <strong>Pipeline B:</strong> Chrome built-in speech (free, local) → Groq Llama → JSON<br><br>
+    Compare: which gives the correct JSON at the end?</p>
+  </div>
+
+  <div class="phrases">
+    <h3>Test phrases</h3>
+    <div class="phrase">संदीप शर्मा का बिल है ग्यारह हज़ार छह सौ का पाइप टंकी बोल्ट लिया सात हज़ार कैश दिया बाकी उधार</div>
+    <div class="phrase">Vijay Kumar ka advance hai saat hazaar sheet ke liye delivery baad mein hogi</div>
+    <div class="phrase">ढाई सौ का खर्चा लगा दे चाय नाश्ता का था</div>
+    <div class="phrase">हाँ भाई लिख ले तीन हज़ार का कैश बिल चादर और बोल्ट दिए राजेश को</div>
+    <div class="phrase">दो हज़ार UPI से आया है राजेश पार्टी का पाइप और बोल्ट दिया</div>
+  </div>
+</div>
+
+<script>
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let selectedLang = 'hi';
+let chromeRecognition = null;
+let chromeFinalText = '';
+let chromeStartTime = 0;
+let recordingStartTime = 0;
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+const SYSTEM_PROMPT = `You are a shop billing assistant for an Indian hardware shop. Parse Hindi/Hinglish/English voice input into JSON.
+
+Available items: पाइप, चादर, टंकी, बोल्ट, कुटिला, बक्सा, दीवान
+Available parties: Ramesh, Rajesh, Gupta Traders
+Available customers: Sandeep Sharma, Vijay Kumar
+
+Return ONLY valid JSON, no explanation:
+{"amount":0,"method":"Cash","type":"Sale","items":[],"party":"","paymentType":"paid","customerName":"","paidAmount":0,"cashAmount":0,"upiAmount":0}
+
+PAYMENT LOGIC (very important):
+- "amount" = TOTAL bill value (what the goods are worth)
+- "paidAmount" = money ACTUALLY received today (cash + UPI combined)
+- "cashAmount" = cash portion received, "upiAmount" = UPI portion received
+- If someone says "बकाया/baaki/credit/udhar" for some portion: amount = paidAmount + due portion. paymentType = "credit"
+- Example: "दस हज़ार का बिल, आठ दिए बाकी उधार" → amount=10000, paidAmount=8000, paymentType="credit"
+- Example: "बारह हज़ार का, पाँच UPI पाँच कैश, दो हज़ार बकाया" → amount=12000, paidAmount=10000, cashAmount=5000, upiAmount=5000, paymentType="credit"
+- If NO बकाया/credit mentioned → paymentType="paid", paidAmount=amount
+- If "एडवांस/advance" mentioned → paymentType="advance", paidAmount=0
+- If "कुछ नहीं दिया/पूरा उधार" → paymentType="credit", paidAmount=0
+
+METHOD LOGIC:
+- method: "Cash", "UPI", "Cash+UPI", "Credit" (when paidAmount=0 and credit)
+- If both cash and UPI mentioned → method="Cash+UPI"
+- party = UPI payment account (from parties list), NOT the customer
+
+ITEM/NAME MATCHING (important — speech recognition may misspell):
+- Match items from list even with slight misspellings (पाइट→पाइप, शीट→चादर, चाला→चादर, टेंकी→टंकी)
+- "sheet/शीट"=चादर, "pipe/पाइट"=पाइप, "tanki/tank/टेंकी"=टंकी, "bolt"=बोल्ट
+- Match party/customer names with fuzzy tolerance`;
+
+// Restore saved key
+const sk = localStorage.getItem('groq_key2');
+if(sk) document.getElementById('groq-key').value = sk;
+
+function setLang(l){
+  selectedLang = l;
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('lang-'+(l||'auto')).classList.add('active');
+}
+
+function toggleRecording(){
+  if(isRecording) stopRecording();
+  else startRecording();
+}
+
+async function startRecording(){
+  const groqKey = document.getElementById('groq-key').value.trim();
+  if(!groqKey){ alert('Paste your Groq API key first'); return; }
+
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    audioChunks = [];
+
+    // Reset UI
+    ['pipeline-groq','pipeline-chrome'].forEach(id=>{
+      document.getElementById(id).style.display='none';
+    });
+    ['groq-stt-text','groq-stt-time','groq-parse-time','groq-total','chrome-stt-text','chrome-stt-time','chrome-parse-time','chrome-total'].forEach(id=>{
+      document.getElementById(id).textContent='';
+    });
+    ['groq-parse-result','chrome-parse-result'].forEach(id=>{
+      document.getElementById(id).innerHTML='';
+    });
+
+    mediaRecorder = new MediaRecorder(stream, {mimeType:'audio/webm;codecs=opus'});
+    mediaRecorder.ondataavailable = e => { if(e.data.size>0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      stream.getTracks().forEach(t=>t.stop());
+      const blob = new Blob(audioChunks, {type:'audio/webm'});
+      runGroqPipeline(blob, groqKey);
+    };
+
+    mediaRecorder.start();
+    isRecording = true;
+    recordingStartTime = Date.now();
+
+    document.getElementById('mic-btn').classList.add('recording');
+    document.getElementById('mic-status').textContent = '🔴 Recording... tap to stop';
+    document.getElementById('mic-status').className = 'mic-status listening';
+
+    // Start Chrome speech simultaneously
+    startChromeSpeech(groqKey);
+
+  }catch(e){
+    document.getElementById('mic-status').textContent = '❌ Mic access denied';
+  }
+}
+
+function stopRecording(){
+  if(mediaRecorder && mediaRecorder.state==='recording') mediaRecorder.stop();
+  isRecording = false;
+  document.getElementById('mic-btn').classList.remove('recording');
+  document.getElementById('mic-status').textContent = '⏳ Processing both pipelines...';
+  document.getElementById('mic-status').className = 'mic-status';
+  if(chromeRecognition) try{chromeRecognition.stop();}catch(e){}
+}
+
+// ══════════════════════════════════════
+// PIPELINE A: Groq Whisper → Groq Llama
+// ══════════════════════════════════════
+async function runGroqPipeline(blob, key){
+  const pipeline = document.getElementById('pipeline-groq');
+  pipeline.style.display = 'block';
+
+  const sttTextEl = document.getElementById('groq-stt-text');
+  const sttTimeEl = document.getElementById('groq-stt-time');
+  const parseTimeEl = document.getElementById('groq-parse-time');
+  const parseResultEl = document.getElementById('groq-parse-result');
+  const totalEl = document.getElementById('groq-total');
+
+  const totalStart = Date.now();
+
+  // Step 1: Whisper STT
+  sttTextEl.innerHTML = '<span class="spinner"></span> Transcribing...';
+  const sttStart = Date.now();
+
+  try{
+    const formData = new FormData();
+    formData.append('file', blob, 'audio.webm');
+    formData.append('model', 'whisper-large-v3');
+    formData.append('response_format', 'verbose_json');
+    if(selectedLang) formData.append('language', selectedLang);
+
+    const resp = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+key},
+      body:formData
+    });
+    const sttElapsed = Date.now() - sttStart;
+    sttTimeEl.textContent = sttElapsed+'ms';
+
+    if(!resp.ok){
+      sttTextEl.textContent = '❌ Whisper error: '+(await resp.text());
+      sttTextEl.classList.add('error');
+      return;
+    }
+
+    const data = await resp.json();
+    const transcript = data.text || '';
+    sttTextEl.textContent = transcript || '(empty)';
+
+    if(!transcript){
+      totalEl.textContent = sttElapsed+'ms (no speech)';
+      return;
+    }
+
+    // Step 2: Llama Parse
+    parseResultEl.innerHTML = '<span class="spinner"></span> Parsing...';
+    const parseStart = Date.now();
+
+    const parseResp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+key, 'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'llama-3.3-70b-versatile',
+        messages:[
+          {role:'system', content:SYSTEM_PROMPT},
+          {role:'user', content:transcript}
+        ],
+        temperature:0.1,
+        max_tokens:500
+      })
+    });
+    const parseElapsed = Date.now() - parseStart;
+    parseTimeEl.textContent = parseElapsed+'ms';
+
+    if(!parseResp.ok){
+      parseResultEl.innerHTML = '<div class="step-text error">❌ Parse error</div>';
+      return;
+    }
+
+    const parseData = await parseResp.json();
+    const jsonStr = parseData.choices?.[0]?.message?.content || '';
+    renderJSON(parseResultEl, jsonStr);
+
+    const totalElapsed = Date.now() - totalStart;
+    totalEl.textContent = totalElapsed+'ms total';
+
+  }catch(e){
+    sttTextEl.textContent = '❌ '+e.message;
+    sttTextEl.classList.add('error');
+  }
+  checkAllDone();
+}
+
+// ══════════════════════════════════════
+// PIPELINE B: Chrome Speech → Groq Llama
+// ══════════════════════════════════════
+function startChromeSpeech(groqKey){
+  if(!SpeechRecognition) return;
+  chromeFinalText = '';
+  chromeStartTime = Date.now();
+
+  const pipeline = document.getElementById('pipeline-chrome');
+  pipeline.style.display = 'block';
+
+  const sttTextEl = document.getElementById('chrome-stt-text');
+  sttTextEl.innerHTML = '<span class="spinner"></span> Listening...';
+
+  chromeRecognition = new SpeechRecognition();
+  chromeRecognition.lang = selectedLang==='hi'?'hi-IN':selectedLang==='en'?'en-US':'hi-IN';
+  chromeRecognition.continuous = true;
+  chromeRecognition.interimResults = false;
+
+  chromeRecognition.onresult = function(e){
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal) chromeFinalText += e.results[i][0].transcript + ' ';
+    }
+    sttTextEl.textContent = chromeFinalText.trim();
+  };
+
+  chromeRecognition.onend = function(){
+    const sttElapsed = Date.now() - chromeStartTime;
+    document.getElementById('chrome-stt-time').textContent = sttElapsed+'ms';
+
+    const text = chromeFinalText.trim();
+    sttTextEl.textContent = text || '(no speech detected)';
+
+    if(text && groqKey){
+      runChromeParse(text, groqKey, Date.now() - (sttElapsed));
+    }
+  };
+
+  chromeRecognition.onerror = function(e){
+    sttTextEl.textContent = '❌ Chrome error: '+e.error;
+    sttTextEl.classList.add('error');
+  };
+
+  chromeRecognition.start();
+}
+
+async function runChromeParse(text, key, pipelineStart){
+  const parseResultEl = document.getElementById('chrome-parse-result');
+  const parseTimeEl = document.getElementById('chrome-parse-time');
+  const totalEl = document.getElementById('chrome-total');
+
+  parseResultEl.innerHTML = '<span class="spinner"></span> Parsing...';
+  const parseStart = Date.now();
+
+  try{
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+key, 'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'llama-3.3-70b-versatile',
+        messages:[
+          {role:'system', content:SYSTEM_PROMPT},
+          {role:'user', content:text}
+        ],
+        temperature:0.1,
+        max_tokens:500
+      })
+    });
+    const parseElapsed = Date.now() - parseStart;
+    parseTimeEl.textContent = parseElapsed+'ms';
+
+    if(!resp.ok){
+      parseResultEl.innerHTML = '<div class="step-text error">❌ Parse error</div>';
+      return;
+    }
+
+    const data = await resp.json();
+    const jsonStr = data.choices?.[0]?.message?.content || '';
+    renderJSON(parseResultEl, jsonStr);
+
+    // Total = Chrome STT time + parse time
+    const sttTime = parseInt(document.getElementById('chrome-stt-time').textContent)||0;
+    totalEl.textContent = (sttTime + parseElapsed)+'ms total';
+
+  }catch(e){
+    parseResultEl.innerHTML = '<div class="step-text error">❌ '+e.message+'</div>';
+  }
+  checkAllDone();
+}
+
+// ══════════════════════════════════════
+// RENDER JSON NICELY
+// ══════════════════════════════════════
+function renderJSON(el, jsonStr){
+  try{
+    const clean = jsonStr.replace(/```json|```/g,'').trim();
+    const obj = JSON.parse(clean);
+    const fields = [
+      {key:'amount', label:'💰 Amount', fmt: v=>'₹'+Number(v).toLocaleString('en-IN'), cls:'green'},
+      {key:'method', label:'💳 Method'},
+      {key:'type', label:'📋 Type'},
+      {key:'items', label:'📦 Items', fmt: v=>Array.isArray(v)?v.join(', '):v},
+      {key:'party', label:'🏪 Party', cls:'blue'},
+      {key:'paymentType', label:'🏷️ Pay Type', cls: v=>v==='credit'?'red':v==='advance'?'blue':'green'},
+      {key:'customerName', label:'👤 Customer'},
+      {key:'paidAmount', label:'✅ Paid', fmt: v=>'₹'+Number(v).toLocaleString('en-IN'), cls:'green'},
+      {key:'cashAmount', label:'💵 Cash', fmt: v=>'₹'+Number(v).toLocaleString('en-IN')},
+      {key:'upiAmount', label:'📱 UPI', fmt: v=>'₹'+Number(v).toLocaleString('en-IN')}
+    ];
+
+    let html = '';
+    fields.forEach(f=>{
+      const val = obj[f.key];
+      if(val===undefined || val==='' || val===0 || (Array.isArray(val)&&!val.length)) return;
+      if(f.key==='paidAmount' && val===obj.amount && obj.paymentType==='paid') return;
+      if((f.key==='cashAmount'||f.key==='upiAmount') && val===0) return;
+      const display = f.fmt ? f.fmt(val) : String(val);
+      const cls = typeof f.cls==='function' ? f.cls(val) : (f.cls||'');
+      html += `<div class="json-field"><span class="json-key">${f.label}</span><span class="json-val ${cls}">${display}</span></div>`;
+    });
+
+    // Show due if credit
+    if(obj.paymentType==='credit' && obj.amount > obj.paidAmount){
+      const due = obj.amount - obj.paidAmount;
+      html += `<div class="json-field"><span class="json-key">⚠️ Due</span><span class="json-val red">₹${due.toLocaleString('en-IN')}</span></div>`;
+    }
+
+    el.innerHTML = html || '<div class="step-text">Empty result</div>';
+
+  }catch(e){
+    el.innerHTML = `<div class="step-text mono">${jsonStr}</div>`;
+  }
+}
+
+function checkAllDone(){
+  const groqDone = document.getElementById('groq-total').textContent;
+  const chromeDone = document.getElementById('chrome-total').textContent;
+  if(groqDone && chromeDone){
+    document.getElementById('mic-status').textContent = '✅ Done — compare both pipelines below';
+    document.getElementById('mic-status').className = 'mic-status done';
+  }
+}
+</script>
+</body>
+</html>
